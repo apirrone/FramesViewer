@@ -20,7 +20,6 @@ backtrace.hook(
 
 reachy = ReachySDK('localhost')
 
-SCALING_FACTOR = 5
 camera_position = [3, -3, 3, 0, 0, 0, 0, 0, 1]
 
 def init():
@@ -72,16 +71,21 @@ def init():
 prev_mouse_pos = np.array([0, 0])
 mouse_l_pressed = False
 mouse_rel = np.array([0, 0])
-
+zoom = 5
 
 def mouseClick(button, mode, x, y):
-    global mouse_l_pressed, prev_mouse_pos
+    global mouse_l_pressed, prev_mouse_pos, zoom
     if mode == 0:
         mouse_l_pressed = True
         prev_mouse_pos = np.array([x, y])
     elif mode == 1:
         mouse_l_pressed = False
         prev_mouse_pos = np.array([0, 0])
+
+    if button == 3 : 
+        zoom += 0.05
+    elif button == 4:
+        zoom -= 0.05
 
 def mouseMotion(x, y):
     global mouse_rel, mouse_l_pressed, prev_mouse_pos
@@ -100,9 +104,9 @@ def displayFrame(pose, size=0.05, blink=False, t=0):
         return
     glPushMatrix()
 
-    size *= SCALING_FACTOR
+    size *= zoom
 
-    tvec = pose[:3, 3]*SCALING_FACTOR
+    tvec = pose[:3, 3]*zoom
     rot_mat = pose[:3, :3]
 
     x_end_vec = rot_mat @ [size, 0, 0] + tvec
@@ -159,10 +163,12 @@ def rotate_camera(angle, axis): # angle in rad
 
     set_camera_position(new_pos, camera_position[3:6])
 
+
+
 t = 0
 start = time.time()
 def display():
-    global mouse_rel, t
+    global mouse_rel, t, zoom
     t = round(time.time() - start)
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
     
@@ -214,7 +220,6 @@ def display():
     # displayFrame(T_torso_tag, blink=True, t=t)
 
     rotate_camera(-mouse_rel[0]*0.001, [0, 0, 1*abs(mouse_rel[0])])
-
     glutSwapBuffers()
     glutPostRedisplay()    
 
