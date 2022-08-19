@@ -6,7 +6,9 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 from reachy_sdk import ReachySDK
 import backtrace
-
+import json
+import time
+import pickle
 backtrace.hook(
     reverse=False,
     align=True,
@@ -16,7 +18,7 @@ backtrace.hook(
     conservative=False,
     styles={})
 
-# reachy = ReachySDK('localhost')
+reachy = ReachySDK('localhost')
 
 SCALING_FACTOR = 5
 camera_position = [3, -3, 3, 0, 0, 0, 0, 0, 1]
@@ -92,7 +94,10 @@ def mouseMotion(x, y):
         mouse_rel = np.array([0, 0])
 
 
-def displayFrame(pose, size=0.05):   
+def displayFrame(pose, size=0.05, blink=False, t=0):   
+
+    if blink and t % 2 == 0:
+        return
     glPushMatrix()
 
     size *= SCALING_FACTOR
@@ -131,10 +136,10 @@ def displayFrame(pose, size=0.05):
     glEnable(GL_LIGHTING)
     glPopMatrix()
 
-def make_pose(tvec, rvec, degrees=True):
+def make_pose(translation, xyz, degrees=True):
     pose = np.eye(4)
-    pose[:3, :3] = R.from_euler('xyz', rvec, degrees=degrees).as_matrix()
-    pose[:3, 3] = tvec
+    pose[:3, :3] = R.from_euler('xyz', xyz, degrees=degrees).as_matrix()
+    pose[:3, 3] = translation
     return pose
 
 
@@ -154,15 +159,20 @@ def rotate_camera(angle, axis): # angle in rad
 
     set_camera_position(new_pos, camera_position[3:6])
 
+t = 0
+start = time.time()
 def display():
-    global mouse_rel
+    global mouse_rel, t
+    t = round(time.time() - start)
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
     
     T_world_torso = make_pose([0, 0, 0], [0, 0, 0])
-    displayFrame(T_world_torso)
+    displayFrame(T_world_torso) 
 
-    T_hand_tag = make_pose([0, 0, 0], [-np.pi/2, 0, -np.pi/2], degrees = False) # approximate, translation missing but is not much
+    T_hand_tag = make_pose([0, 0, 0.05], [-np.pi/2, 0, -np.pi/2], degrees = False) # approximate, translation missing but is not much
     T_tag_hand = np.linalg.inv(T_hand_tag)
+    T_torso_camera = make_pose([0, -0.035, 0.16], [-90, 0, -90])
+    # displayFrame(T_torso_camera)
 
     # given by fk (rad, m)
     T_torso_hand = np.array([[-0.9138159 , -0.29510683, -0.27902053,  0.41941922],
@@ -175,25 +185,34 @@ def display():
                              [ 0.17211714, -0.84737062, -0.50233328,  0.14054844],
                              [ 0.43121227,  0.52330072, -0.73499138,  0.34714904],
                              [ 0.        ,  0.        ,  0.        ,  1.        ]])
+    T_torso_cylinder = np.array([[ 0.22,  0.02, -0.97,  0.43],
+                                 [-0.67, -0.73, -0.17, -0.04],
+                                 [-0.71,  0.69, -0.15,  0.03],
+                                 [ 0.  ,  0.  ,  0.  ,  1.  ]])
+
+    displayFrame(T_torso_cylinder)
+
+
+
+    T_camera_torso = pickle.load(open("../../Pollen/INCIA_cylinder_grasping/camera_calibration/T_camera_torso.pckl", 'rb'))
+    T_torso_camera = np.linalg.inv(T_camera_torso)
+
+    displayFrame(T_torso_camera, blink=False, t=t)
 
     T_tag_camera = np.linalg.inv(T_camera_tag)
 
-    T_torso_camera = T_torso_hand @ T_hand_tag @ T_tag_camera
+    # T_torso_camera = T_torso_hand @ T_hand_tag @ T_tag_camera
 
     # print(T_torso_camera)
-    displayFrame(T_torso_camera)
+    # displayFrame(T_torso_camera)
 
-    # T_torso_hand = reachy.r_arm.forward_kinematics()
-
-    # displayFrame(T_torso_hand)
-
-
-    # T_torso_tag = T_torso_hand @ T_hand_tag
-
-    # displayFrame(T_torso_tag)
+    T_torso_hand = reachy.r_arm.forward_kinematics()
+    displayFrame(T_torso_hand)
 
 
-    # rotate_camera(0.01, [1, 0, 0])
+    T_torso_tag = T_torso_hand @ T_hand_tag
+    # displayFrame(T_torso_tag, blink=True, t=t)
+
     rotate_camera(-mouse_rel[0]*0.001, [0, 0, 1*abs(mouse_rel[0])])
 
     glutSwapBuffers()
