@@ -20,6 +20,7 @@ backtrace.hook(
     styles={})
 
 
+# TODO weird behaviour with displayWorld
 class FramesViewer():
     def __init__(self, window_size, name = b"FramesViewer"):
         self.window_size = window_size
