@@ -9,6 +9,8 @@ import backtrace
 import json
 import time
 import pickle
+import utils
+
 backtrace.hook(
     reverse=False,
     align=True,
@@ -18,19 +20,19 @@ backtrace.hook(
     conservative=False,
     styles={})
 
-reachy = ReachySDK('localhost')
-
-camera_position = [3, -3, 3, 0, 0, 0, 0, 0, 1]
+# reachy = ReachySDK('localhost')
 
 def init():
     glutInit(sys.argv)
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
-    glutInitWindowSize(700,700)
+    glutInitWindowSize(1000, 1000)
     glutCreateWindow(b"Visu")
 
     glClearColor(1.,1.,1.,1.)
     glShadeModel(GL_SMOOTH)
     
+    glEnable(GL_BLEND)
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
     # glEnable(GL_CULL_FACE)
     glEnable(GL_DEPTH_TEST)
     glEnable(GL_LIGHTING)
@@ -67,118 +69,68 @@ def init():
     glutSwapBuffers()
     glutPostRedisplay()
     return
-    
-prev_mouse_pos = np.array([0, 0])
-mouse_l_pressed = False
-mouse_rel = np.array([0, 0])
-zoom = 5
 
 def mouseClick(button, mode, x, y):
-    global mouse_l_pressed, prev_mouse_pos, zoom
+    global mouse_l_pressed, mouse_m_pressed, prev_mouse_pos, zoom
     if mode == 0:
-        mouse_l_pressed = True
         prev_mouse_pos = np.array([x, y])
-    elif mode == 1:
-        mouse_l_pressed = False
+    else:
         prev_mouse_pos = np.array([0, 0])
+
+    if button == 0:
+        if mode == 0:
+            mouse_l_pressed = True
+        elif mode == 1:
+            mouse_l_pressed = False
 
     if button == 3 : 
         zoom += 0.05
     elif button == 4:
-        zoom -= 0.05
+        zoom = max(0, zoom - 0.05)
+
+    if button == 2:
+        if mode == 0:
+            mouse_m_pressed = True
+        elif mode == 1:
+            mouse_m_pressed = False
+
+
+    
 
 def mouseMotion(x, y):
-    global mouse_rel, mouse_l_pressed, prev_mouse_pos
-    if mouse_l_pressed:
-        mouse_pos = np.array([x, y])
-        mouse_rel = mouse_pos - prev_mouse_pos
+    global mouse_rel, mouse_l_pressed, mouse_m_pressed, prev_mouse_pos
+    # if mouse_l_pressed:
+    mouse_pos = np.array([x, y])
+    mouse_rel = mouse_pos - prev_mouse_pos
 
-        prev_mouse_pos = mouse_pos.copy()
-    else:
-        mouse_rel = np.array([0, 0])
-
-
-def displayFrame(pose, size=0.05, blink=False, t=0):   
-
-    if blink and t % 2 == 0:
-        return
-    glPushMatrix()
-
-    size *= zoom
-
-    tvec = pose[:3, 3]*zoom
-    rot_mat = pose[:3, :3]
-
-    x_end_vec = rot_mat @ [size, 0, 0] + tvec
-    y_end_vec = rot_mat @ [0, size, 0] + tvec
-    z_end_vec = rot_mat @ [0, 0, size] + tvec
-
-    glDisable(GL_LIGHTING)    
-    glLineWidth(2)
-
-    # X
-    glColor3f(1, 0, 0)
-    glBegin(GL_LINES)
-    glVertex3f(tvec[0], tvec[1], tvec[2])
-    glVertex3f(x_end_vec[0], x_end_vec[1], x_end_vec[2])
-    glEnd()
-
-    # Y
-    glColor3f(0, 1, 0)
-    glBegin(GL_LINES)
-    glVertex3f(tvec[0], tvec[1], tvec[2])
-    glVertex3f(y_end_vec[0], y_end_vec[1], y_end_vec[2])
-    glEnd()
-
-    # Z
-    glColor3f(0, 0, 1)
-    glBegin(GL_LINES)
-    glVertex3f(tvec[0], tvec[1], tvec[2])
-    glVertex3f(z_end_vec[0], z_end_vec[1], z_end_vec[2])
-    glEnd()
-
-    glEnable(GL_LIGHTING)
-    glPopMatrix()
-
-def make_pose(translation, xyz, degrees=True):
-    pose = np.eye(4)
-    pose[:3, :3] = R.from_euler('xyz', xyz, degrees=degrees).as_matrix()
-    pose[:3, 3] = translation
-    return pose
-
-
-def set_camera_position(pos, center, up=[0, 0, 1]):
-    glMatrixMode(GL_MODELVIEW)
-    glLoadIdentity()
-    gluLookAt(pos[0], pos[1], pos[2], center[0], center[1], center[2], up[0], up[1], up[2])
-
-def rotate_camera(angle, axis): # angle in rad
-
-    pos = camera_position[:3]
-    axis = np.array(axis)
-    rot_mat = R.from_euler('xyz', axis*angle, degrees=False).as_matrix()
-    new_pos = rot_mat @ pos
-
-    camera_position[:3] = new_pos
-
-    set_camera_position(new_pos, camera_position[3:6])
+    prev_mouse_pos = mouse_pos.copy()
+    # else:
+    #     mouse_rel = np.array([0, 0])
 
 
 
+
+    
+prev_mouse_pos = np.array([0, 0])
+mouse_l_pressed = False
+mouse_m_pressed = False
+mouse_rel = np.array([0, 0])
+zoom = 5
+camera_position = [3, -3, 3, 0, 0, 0, 0, 0, 1]
 t = 0
 start = time.time()
 def display():
     global mouse_rel, t, zoom
     t = round(time.time() - start)
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
-    
-    T_world_torso = make_pose([0, 0, 0], [0, 0, 0])
-    displayFrame(T_world_torso) 
 
-    T_hand_tag = make_pose([0, 0, 0.05], [-np.pi/2, 0, -np.pi/2], degrees = False) # approximate, translation missing but is not much
-    T_tag_hand = np.linalg.inv(T_hand_tag)
-    T_torso_camera = make_pose([0, -0.035, 0.16], [-90, 0, -90])
-    # displayFrame(T_torso_camera)
+    
+    # T_world_torso = utils.make_pose([0, 0, 0], [0, 0, 0])
+    # utils.displayFrame(T_world_torso, zoom) 
+
+    utils.displayWorld(zoom)
+
+    T_hand_tag = utils.make_pose([0, 0, 0.05], [-np.pi/2, 0, -np.pi/2], degrees = False) # approximate, translation missing but is not much
 
     # given by fk (rad, m)
     T_torso_hand = np.array([[-0.9138159 , -0.29510683, -0.27902053,  0.41941922],
@@ -191,35 +143,30 @@ def display():
                              [ 0.17211714, -0.84737062, -0.50233328,  0.14054844],
                              [ 0.43121227,  0.52330072, -0.73499138,  0.34714904],
                              [ 0.        ,  0.        ,  0.        ,  1.        ]])
+                             
     T_torso_cylinder = np.array([[ 0.22,  0.02, -0.97,  0.43],
                                  [-0.67, -0.73, -0.17, -0.04],
                                  [-0.71,  0.69, -0.15,  0.03],
                                  [ 0.  ,  0.  ,  0.  ,  1.  ]])
 
-    displayFrame(T_torso_cylinder)
+    utils.displayFrame(T_torso_cylinder, zoom)
 
 
 
     T_camera_torso = pickle.load(open("../../Pollen/INCIA_cylinder_grasping/camera_calibration/T_camera_torso.pckl", 'rb'))
     T_torso_camera = np.linalg.inv(T_camera_torso)
 
-    displayFrame(T_torso_camera, blink=False, t=t)
+    utils.displayFrame(T_torso_camera, zoom, blink=False, t=t)
 
-    T_tag_camera = np.linalg.inv(T_camera_tag)
+    # T_torso_hand = reachy.r_arm.forward_kinematics()
+    # utils.displayFrame(T_torso_hand)
 
-    # T_torso_camera = T_torso_hand @ T_hand_tag @ T_tag_camera
+    if mouse_l_pressed:
+        utils.rotate_camera(camera_position,-mouse_rel[0]*0.001, [0, 0, 1*abs(mouse_rel[0])])
 
-    # print(T_torso_camera)
-    # displayFrame(T_torso_camera)
+    # if mouse_m_pressed:
+    #     utils.move_camera(camera_position, mouse_rel)
 
-    T_torso_hand = reachy.r_arm.forward_kinematics()
-    displayFrame(T_torso_hand)
-
-
-    T_torso_tag = T_torso_hand @ T_hand_tag
-    # displayFrame(T_torso_tag, blink=True, t=t)
-
-    rotate_camera(-mouse_rel[0]*0.001, [0, 0, 1*abs(mouse_rel[0])])
     glutSwapBuffers()
     glutPostRedisplay()    
 
