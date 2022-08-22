@@ -6,6 +6,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 import time
 import threading
+import utils
 
 # TODO better camera
 # TODO display the frames names in the viewer
@@ -222,7 +223,7 @@ class FramesViewer():
 
     def displayWorld(self):
 
-        self.displayFrame(self.make_pose([0, 0, 0], [0, 0, 0])) 
+        self.displayFrame(utils.make_pose([0, 0, 0], [0, 0, 0])) 
 
         glPushMatrix()
 
@@ -230,7 +231,7 @@ class FramesViewer():
         length = 15
         alpha = 0.04
 
-        pose = self.make_pose([0, 0, 0], [0, 0, 0])
+        pose = utils.make_pose([0, 0, 0], [0, 0, 0])
 
         tvec = pose[:3, 3]*self.zoom
         rot_mat = pose[:3, :3]
@@ -279,7 +280,11 @@ class FramesViewer():
         glEnable(GL_LIGHTING)
         glPopMatrix()
 
-    
+
+class utils():
+    def __init__(self):
+        pass
+
     @staticmethod
     def make_pose(translation, xyz, degrees=True):
 
@@ -289,4 +294,30 @@ class FramesViewer():
         return pose
 
 
+    @staticmethod
+    def translate(frame, translation):
+        frame[:3, 3] += translation
+
+    @staticmethod
+    def rotateInPlace(frame, rotation):
+        translation = frame[:3, 3].copy()
+        utils.translate(frame, -translation)
+        frame = utils.make_pose([0, 0, 0], rotation) @ frame
+        utils.translate(frame, translation)
+        return frame
+
+    @staticmethod
+    def rotateInSelf(frame, rotation):
+
+        toOrigin         = np.eye(4)
+        toOrigin[:3, :3] = frame[:3, :3]
+        toOrigin[:3, 3]  = frame[:3, 3]
+        toOrigin         = np.linalg.inv(toOrigin)
+
+        frame = toOrigin @ frame
+        frame = utils.make_pose([0, 0, 0], rotation) @ frame
+        
+        frame = np.linalg.inv(toOrigin) @ frame
+
+        return frame
 
