@@ -5,17 +5,15 @@ import sys
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 import time
-import utils
 import threading
 
-# TODO allow to set unit scale in init
 # TODO better camera
 # TODO simplify the code for displaying the "world"
 # TODO display the frames names in the viewer
 
 class FramesViewer():
     
-    def __init__(self, window_size, name = b"FramesViewer"):
+    def __init__(self, window_size, name = b"FramesViewer", size = 0.1):
         self.window_size = window_size
         self.name = name
         self.camera_position = [3, -3, 3, 0, 0, 0, 0, 0, 1]
@@ -26,14 +24,16 @@ class FramesViewer():
         self.mouse_rel = np.array([0, 0])
         self.t = 0
         self.startTime = time.time()
-
         self.frames = {}
+        self.size = size # sort of scaling factor. Adjust this depending on the scale of your coordinates
 
     def start(self):
         t = threading.Thread(target=self.initGL, name="FramesViewer_thread")
         t.daemon = True
         t.start()
 
+    # Frames must be a pose matrix, a numpy array of shape (4, 4)
+    # If the frame already exists, it is updated
     def pushFrame(self, frame, name):
         self.frames[name] = frame
 
@@ -67,7 +67,6 @@ class FramesViewer():
         
         glutDisplayFunc(self.display)
         
-        
         glMatrixMode(GL_PROJECTION)
 
         gluPerspective(70., 1. ,1. ,40.)
@@ -83,7 +82,6 @@ class FramesViewer():
 
         glutMainLoop()
 
-
         glutSwapBuffers()
         glutPostRedisplay()
 
@@ -92,8 +90,7 @@ class FramesViewer():
 
         t = round(time.time() - self.startTime)
 
-
-        self.displayWorld(self.zoom)
+        self.displayWorld()
 
         for name, frame in self.frames.items():
             self.displayFrame(frame)
@@ -105,14 +102,11 @@ class FramesViewer():
         glutPostRedisplay()    
 
 
-    def displayFrame(self, pose, size=0.05, blink=False, t=0):   
-
-        if blink and t % 2 == 0:
-            return
+    def displayFrame(self, pose):   
 
         glPushMatrix()
 
-        size *= self.zoom
+        size = self.size*self.zoom
 
         tvec = pose[:3, 3]*self.zoom
         rot_mat = pose[:3, :3]
@@ -194,25 +188,25 @@ class FramesViewer():
         self.prev_mouse_pos = self.mouse_pos.copy()
 
 
-    def displayWorld(self, size=0.05):
+    def displayWorld(self):
 
-        self.displayFrame(utils.make_pose([0, 0, 0], [0, 0, 0])) 
+        self.displayFrame(self.make_pose([0, 0, 0], [0, 0, 0])) 
 
         glPushMatrix()
 
-        size *= self.zoom
+        size = self.size*self.zoom
         length = 15
         alpha = 0.04
 
-        pose = utils.make_pose([0, 0, 0], [0, 0, 0])
+        pose = self.make_pose([0, 0, 0], [0, 0, 0])
 
         tvec = pose[:3, 3]*self.zoom
         rot_mat = pose[:3, :3]
 
 
-        x_end_vec = rot_mat @ [length*self.zoom/10, 0, 0] + tvec
-        y_end_vec = rot_mat @ [0, length*self.zoom/10, 0] + tvec
-        z_end_vec = rot_mat @ [0, 0, length*self.zoom/10] + tvec
+        x_end_vec = rot_mat @ [length*size, 0, 0] + tvec
+        y_end_vec = rot_mat @ [0, length*size, 0] + tvec
+        z_end_vec = rot_mat @ [0, 0, length*size] + tvec
 
         glDisable(GL_LIGHTING)    
         glLineWidth(3)
@@ -220,40 +214,47 @@ class FramesViewer():
         # X
         glColor4f(0, 0, 0, alpha)
         for i in range(length+1):
-            i /= 10
             glBegin(GL_LINES)
-            glVertex3f(tvec[0], tvec[1]+i*self.zoom, tvec[2])
-            glVertex3f(x_end_vec[0], x_end_vec[1]+i*self.zoom, x_end_vec[2])
+            glVertex3f(tvec[0], tvec[1]+i*size, tvec[2])
+            glVertex3f(x_end_vec[0], x_end_vec[1]+i*size, x_end_vec[2])
 
-            glVertex3f(tvec[0]+i*self.zoom, tvec[1], tvec[2])
-            glVertex3f(y_end_vec[0]+i*self.zoom, y_end_vec[1], y_end_vec[2])
+            glVertex3f(tvec[0]+i*size, tvec[1], tvec[2])
+            glVertex3f(y_end_vec[0]+i*size, y_end_vec[1], y_end_vec[2])
             glEnd()
 
 
         # Y
         glColor4f(0, 0, 0, alpha)
         for i in range(length+1):
-            i/=10
             glBegin(GL_LINES)
-            glVertex3f(tvec[0], tvec[1], tvec[2]+i*self.zoom)
-            glVertex3f(y_end_vec[0], y_end_vec[1], y_end_vec[2]+i*self.zoom)
+            glVertex3f(tvec[0], tvec[1], tvec[2]+i*size)
+            glVertex3f(y_end_vec[0], y_end_vec[1], y_end_vec[2]+i*size)
 
-            glVertex3f(tvec[0], tvec[1]+i*self.zoom, tvec[2])
-            glVertex3f(z_end_vec[0], z_end_vec[1]+i*self.zoom, z_end_vec[2])
+            glVertex3f(tvec[0], tvec[1]+i*size, tvec[2])
+            glVertex3f(z_end_vec[0], z_end_vec[1]+i*size, z_end_vec[2])
             glEnd()
 
         # Z
         glColor4f(0, 0, 0, alpha)
         for i in range(length+1):
-            i/=10
             glBegin(GL_LINES)
-            glVertex3f(tvec[0]+i*self.zoom, tvec[1], tvec[2])
-            glVertex3f(z_end_vec[0]+i*self.zoom, z_end_vec[1], z_end_vec[2])
-            glVertex3f(tvec[0], tvec[1], tvec[2]+i*self.zoom)
-            glVertex3f(x_end_vec[0], x_end_vec[1], x_end_vec[2]+i*self.zoom)
+            glVertex3f(tvec[0]+i*size, tvec[1], tvec[2])
+            glVertex3f(z_end_vec[0]+i*size, z_end_vec[1], z_end_vec[2])
+            glVertex3f(tvec[0], tvec[1], tvec[2]+i*size)
+            glVertex3f(x_end_vec[0], x_end_vec[1], x_end_vec[2]+i*size)
             glEnd()
 
         glEnable(GL_LIGHTING)
         glPopMatrix()
+
+    
+    @staticmethod
+    def make_pose(translation, xyz, degrees=True):
+
+        pose = np.eye(4)
+        pose[:3, :3] = R.from_euler('xyz', xyz, degrees=degrees).as_matrix()
+        pose[:3, 3] = translation
+        return pose
+
 
 
