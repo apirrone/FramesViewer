@@ -9,6 +9,7 @@ A simple live 6D frames viewer
 ## Example : 
 ```python
 from FramesViewer import FramesViewer
+from FramesViewer import utils as fv_utils
 
 fv = FramesViewer([1000, 1000])
 fv.start()
