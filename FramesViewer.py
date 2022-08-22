@@ -4,25 +4,14 @@ from OpenGL.GL import *
 import sys
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-import backtrace
-import json
 import time
-import pickle
 import utils
 import threading
 
 
 
 # TODO allow to set unit scale in init
-
-backtrace.hook(
-    reverse=False,
-    align=True,
-    strip_path=True,
-    enable_on_envvar_only=False,
-    on_tty=False,
-    conservative=False,
-    styles={})
+# TODO better camera
 
 class FramesViewer():
     def __init__(self, window_size, name = b"FramesViewer"):
@@ -44,7 +33,6 @@ class FramesViewer():
         t.daemon = True
         t.start()
 
-    # returns the frame id 
     def pushFrame(self, frame, name):
         self.frames[name] = frame
 
@@ -63,12 +51,11 @@ class FramesViewer():
         
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-        # glEnable(GL_CULL_FACE)
         glEnable(GL_DEPTH_TEST)
         glEnable(GL_LIGHTING)
         
         lightZeroPosition = [10.,4.,10.,1.]
-        lightZeroColor = [0.8,1.0,0.8,1.0] #green tinged
+        lightZeroColor = [0.8,1.0,0.8,1.0]
         
         glLightfv(GL_LIGHT0, GL_POSITION, lightZeroPosition)
         glLightfv(GL_LIGHT0, GL_DIFFUSE, lightZeroColor)
