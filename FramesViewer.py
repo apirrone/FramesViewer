@@ -20,6 +20,7 @@ class FramesViewer():
         self.prev_mouse_pos = np.array([0, 0])
         self.mouse_l_pressed = False
         self.mouse_m_pressed = False
+        self.ctrl_pressed = False
         self.mouse_rel = np.array([0, 0])
         self.t = 0
         self.startTime = time.time()
@@ -78,6 +79,8 @@ class FramesViewer():
         
         glutMouseFunc(self.mouseClick)
         glutMotionFunc(self.mouseMotion)
+        glutKeyboardFunc(self.keyboard)
+
 
         glutMainLoop()
 
@@ -95,7 +98,12 @@ class FramesViewer():
             self.displayFrame(frame, color)
 
         if self.mouse_l_pressed:
-            self.rotate_camera(-self.mouse_rel[0]*0.001, [0, 0, 1*abs(self.mouse_rel[0])])
+            if self.ctrl_pressed:
+                pass
+                # self.move_camera(self.mouse_rel)
+            else:
+                self.rotate_camera(-self.mouse_rel[0]*0.001, [0, 0, 1*abs(self.mouse_rel[0])])
+
 
         glutSwapBuffers()
         glutPostRedisplay()    
@@ -162,6 +170,18 @@ class FramesViewer():
 
         self.set_camera_position(new_pos, self.camera_position[3:6])
 
+
+    def move_camera(self, vec):
+        # TODO do with raycasting
+
+        self.camera_position[0] += vec[0]*0.01
+        self.camera_position[1] += vec[1]*0.01
+        self.camera_position[3] += vec[0]*0.01
+        self.camera_position[4] += vec[1]*0.01
+
+        self.set_camera_position(self.camera_position[:3], self.camera_position[3:6])
+
+
     def mouseClick(self, button, mode, x, y):
         if mode == 0:
             self.prev_mouse_pos = np.array([x, y])
@@ -185,11 +205,19 @@ class FramesViewer():
             elif mode == 1:
                 self.mouse_m_pressed = False
 
+        if glutGetModifiers() == 2:
+            self.ctrl_pressed = True
+        else:    
+            self.ctrl_pressed = False
+
     def mouseMotion(self, x, y):
         self.mouse_pos = np.array([x, y])
         self.mouse_rel = self.mouse_pos - self.prev_mouse_pos
 
         self.prev_mouse_pos = self.mouse_pos.copy()
+
+    def keyboard(self, key, x, y):
+        pass
 
 
     def displayWorld(self):
