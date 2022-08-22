@@ -13,6 +13,8 @@ import threading
 
 
 
+# TODO allow to set unit scale in init
+
 backtrace.hook(
     reverse=False,
     align=True,
