@@ -8,7 +8,6 @@ import time
 import threading
 
 # TODO better camera
-# TODO simplify the code for displaying the "world"
 # TODO display the frames names in the viewer
 
 class FramesViewer():
