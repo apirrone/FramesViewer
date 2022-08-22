@@ -33,8 +33,8 @@ class FramesViewer():
 
     # Frames must be a pose matrix, a numpy array of shape (4, 4)
     # If the frame already exists, it is updated
-    def pushFrame(self, frame, name):
-        self.frames[name] = frame
+    def pushFrame(self, frame, name, color=None):
+        self.frames[name] = (frame, color)
 
     def popFrame(self, name):
         if name in self.frames:
@@ -91,8 +91,8 @@ class FramesViewer():
 
         self.displayWorld()
 
-        for name, frame in self.frames.items():
-            self.displayFrame(frame)
+        for name, (frame, color) in self.frames.items():
+            self.displayFrame(frame, color)
 
         if self.mouse_l_pressed:
             self.rotate_camera(-self.mouse_rel[0]*0.001, [0, 0, 1*abs(self.mouse_rel[0])])
@@ -101,7 +101,7 @@ class FramesViewer():
         glutPostRedisplay()    
 
 
-    def displayFrame(self, pose):   
+    def displayFrame(self, pose, color=None):   
 
         glPushMatrix()
 
@@ -137,6 +137,11 @@ class FramesViewer():
         glVertex3f(tvec[0], tvec[1], tvec[2])
         glVertex3f(z_end_vec[0], z_end_vec[1], z_end_vec[2])
         glEnd()
+
+        if color is not None:
+            glColor3f(color[0], color[1], color[2])
+            glTranslatef(tvec[0], tvec[1], tvec[2])
+            gluSphere(gluNewQuadric(), size/10, 10, 10)
 
         glEnable(GL_LIGHTING)
         glPopMatrix()
