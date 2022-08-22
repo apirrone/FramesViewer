@@ -25,8 +25,8 @@ fv.popFrame("frame1")
 
 ```
 
-Once `fv.start()` is called, the viewer will run in a separate thread. 
+Once `fv.start()` is called, the viewer runs in a separate thread. 
 
-You can then dynamically call `fv.pushFrame(...)` to add add or update frames.
+You can then dynamically call `fv.pushFrame(...)` to add, update or remove frames.
 
 
