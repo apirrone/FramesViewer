@@ -1,5 +1,7 @@
 # FramesViewer 
 
+A simple live 6D frames viewer
+
 ![FramesViewer](assets/FramesViewer.png)
 
 

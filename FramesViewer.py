@@ -8,12 +8,13 @@ import time
 import utils
 import threading
 
-
-
 # TODO allow to set unit scale in init
 # TODO better camera
+# TODO simplify the code for displaying the "world"
+# TODO display the frames names in the viewer
 
 class FramesViewer():
+    
     def __init__(self, window_size, name = b"FramesViewer"):
         self.window_size = window_size
         self.name = name
@@ -29,7 +30,7 @@ class FramesViewer():
         self.frames = {}
 
     def start(self):
-        t = threading.Thread(target=self.initGL, name="aze")
+        t = threading.Thread(target=self.initGL, name="FramesViewer_thread")
         t.daemon = True
         t.start()
 
@@ -85,7 +86,6 @@ class FramesViewer():
 
         glutSwapBuffers()
         glutPostRedisplay()
-        return
 
     def display(self):
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
@@ -100,9 +100,6 @@ class FramesViewer():
 
         if self.mouse_l_pressed:
             self.rotate_camera(-self.mouse_rel[0]*0.001, [0, 0, 1*abs(self.mouse_rel[0])])
-
-        # if mouse_m_pressed:
-        #     utils.move_camera(camera_position, mouse_rel)
 
         glutSwapBuffers()
         glutPostRedisplay()    
