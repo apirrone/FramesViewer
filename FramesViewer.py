@@ -9,6 +9,9 @@ import json
 import time
 import pickle
 import utils
+import threading
+
+
 
 backtrace.hook(
     reverse=False,
@@ -19,8 +22,6 @@ backtrace.hook(
     conservative=False,
     styles={})
 
-
-# TODO weird behaviour with displayWorld
 class FramesViewer():
     def __init__(self, window_size, name = b"FramesViewer"):
         self.window_size = window_size
@@ -32,16 +33,22 @@ class FramesViewer():
         self.mouse_m_pressed = False
         self.mouse_rel = np.array([0, 0])
         self.t = 0
-        self.start = time.time()
+        self.startTime = time.time()
 
-        self.frames = []
+        self.frames = {}
 
-        self.initGL()
+    def start(self):
+        t = threading.Thread(target=self.initGL, name="aze")
+        t.daemon = True
+        t.start()
 
     # returns the frame id 
-    def pushFrame(self, frame):
-        self.frames.append(frame)
-        return len(self.frames)
+    def pushFrame(self, frame, name):
+        self.frames[name] = frame
+
+    def popFrame(self, name):
+        if name in self.frames:
+            del self.frames[name]
 
     def initGL(self):
         glutInit(sys.argv)
@@ -94,44 +101,13 @@ class FramesViewer():
     def display(self):
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
-        t = round(time.time() - self.start)
+        t = round(time.time() - self.startTime)
 
 
         self.displayWorld(self.zoom)
 
-        for frame in self.frames:
+        for name, frame in self.frames.items():
             self.displayFrame(frame)
-
-        T_hand_tag = utils.make_pose([0, 0, 0.05], [-np.pi/2, 0, -np.pi/2], degrees = False) # approximate, translation missing but is not much
-
-        # given by fk (rad, m)
-        T_torso_hand = np.array([[-0.9138159 , -0.29510683, -0.27902053,  0.41941922],
-                                [-0.13158546,  0.86510367, -0.48402573, -0.05093768],
-                                [ 0.38422099, -0.40559536, -0.82937726,  0.075935  ],
-                                [ 0.        ,  0.        ,  0.        ,  1.        ]])
-
-        # given by aruco (rad, m)
-        T_camera_tag = np.array([[ 0.88568147, -0.09010766,  0.45546563,  0.05219593],
-                                [ 0.17211714, -0.84737062, -0.50233328,  0.14054844],
-                                [ 0.43121227,  0.52330072, -0.73499138,  0.34714904],
-                                [ 0.        ,  0.        ,  0.        ,  1.        ]])
-                                
-        T_torso_cylinder = np.array([[ 0.22,  0.02, -0.97,  0.43],
-                                    [-0.67, -0.73, -0.17, -0.04],
-                                    [-0.71,  0.69, -0.15,  0.03],
-                                    [ 0.  ,  0.  ,  0.  ,  1.  ]])
-
-        self.displayFrame(T_torso_cylinder)
-
-
-
-        T_camera_torso = pickle.load(open("../../Pollen/INCIA_cylinder_grasping/camera_calibration/T_camera_torso.pckl", 'rb'))
-        T_torso_camera = np.linalg.inv(T_camera_torso)
-
-        self.displayFrame(T_torso_camera, blink=False, t=t)
-
-        # T_torso_hand = reachy.r_arm.forward_kinematics()
-        # utils.displayFrame(T_torso_hand)
 
         if self.mouse_l_pressed:
             self.rotate_camera(-self.mouse_rel[0]*0.001, [0, 0, 1*abs(self.mouse_rel[0])])
@@ -160,7 +136,7 @@ class FramesViewer():
         z_end_vec = rot_mat @ [0, 0, size] + tvec
 
         glDisable(GL_LIGHTING)    
-        glLineWidth(2)
+        glLineWidth(4)
 
         # X
         glColor3f(1, 0, 0)
@@ -238,8 +214,8 @@ class FramesViewer():
 
         glPushMatrix()
 
-        size *= self.zoom/20
-        length = 10
+        size *= self.zoom
+        length = 15
         alpha = 0.04
 
         pose = utils.make_pose([0, 0, 0], [0, 0, 0])
@@ -248,44 +224,47 @@ class FramesViewer():
         rot_mat = pose[:3, :3]
 
 
-        x_end_vec = rot_mat @ [size*length, 0, 0] + tvec
-        y_end_vec = rot_mat @ [0, size*length, 0] + tvec
-        z_end_vec = rot_mat @ [0, 0, size*length] + tvec
+        x_end_vec = rot_mat @ [length*self.zoom/10, 0, 0] + tvec
+        y_end_vec = rot_mat @ [0, length*self.zoom/10, 0] + tvec
+        z_end_vec = rot_mat @ [0, 0, length*self.zoom/10] + tvec
 
         glDisable(GL_LIGHTING)    
-        glLineWidth(2)
+        glLineWidth(3)
 
         # X
         glColor4f(0, 0, 0, alpha)
         for i in range(length+1):
+            i /= 10
             glBegin(GL_LINES)
-            glVertex3f(tvec[0], tvec[1]+i*size, tvec[2])
-            glVertex3f(x_end_vec[0], x_end_vec[1]+i*size, x_end_vec[2])
+            glVertex3f(tvec[0], tvec[1]+i*self.zoom, tvec[2])
+            glVertex3f(x_end_vec[0], x_end_vec[1]+i*self.zoom, x_end_vec[2])
 
-            glVertex3f(tvec[0]+i*size, tvec[1], tvec[2])
-            glVertex3f(y_end_vec[0]+i*size, y_end_vec[1], y_end_vec[2])
+            glVertex3f(tvec[0]+i*self.zoom, tvec[1], tvec[2])
+            glVertex3f(y_end_vec[0]+i*self.zoom, y_end_vec[1], y_end_vec[2])
             glEnd()
 
 
         # Y
         glColor4f(0, 0, 0, alpha)
         for i in range(length+1):
+            i/=10
             glBegin(GL_LINES)
-            glVertex3f(tvec[0], tvec[1], tvec[2]+i*size)
-            glVertex3f(y_end_vec[0], y_end_vec[1], y_end_vec[2]+i*size)
+            glVertex3f(tvec[0], tvec[1], tvec[2]+i*self.zoom)
+            glVertex3f(y_end_vec[0], y_end_vec[1], y_end_vec[2]+i*self.zoom)
 
-            glVertex3f(tvec[0], tvec[1]+i*size, tvec[2])
-            glVertex3f(z_end_vec[0], z_end_vec[1]+i*size, z_end_vec[2])
+            glVertex3f(tvec[0], tvec[1]+i*self.zoom, tvec[2])
+            glVertex3f(z_end_vec[0], z_end_vec[1]+i*self.zoom, z_end_vec[2])
             glEnd()
 
         # Z
         glColor4f(0, 0, 0, alpha)
         for i in range(length+1):
+            i/=10
             glBegin(GL_LINES)
-            glVertex3f(tvec[0]+i*size, tvec[1], tvec[2])
-            glVertex3f(z_end_vec[0]+i*size, z_end_vec[1], z_end_vec[2])
-            glVertex3f(tvec[0], tvec[1], tvec[2]+i*size)
-            glVertex3f(x_end_vec[0], x_end_vec[1], x_end_vec[2]+i*size)
+            glVertex3f(tvec[0]+i*self.zoom, tvec[1], tvec[2])
+            glVertex3f(z_end_vec[0]+i*self.zoom, z_end_vec[1], z_end_vec[2])
+            glVertex3f(tvec[0], tvec[1], tvec[2]+i*self.zoom)
+            glVertex3f(x_end_vec[0], x_end_vec[1], x_end_vec[2]+i*self.zoom)
             glEnd()
 
         glEnable(GL_LIGHTING)
