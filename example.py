@@ -1,8 +1,5 @@
 from FramesViewer import FramesViewer
 import time
-from reachy_sdk import ReachySDK
-
-reachy = ReachySDK('localhost')
 
 fv = FramesViewer([1000, 1000])
 fv.start()
