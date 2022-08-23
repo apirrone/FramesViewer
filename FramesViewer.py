@@ -1,3 +1,4 @@
+from socket import TCP_WINDOW_CLAMP
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 from OpenGL.GL import *
@@ -27,6 +28,9 @@ class FramesViewer():
         self.startTime = time.time()
         self.frames = {}
         self.size = size # sort of scaling factor. Adjust this depending on the scale of your coordinates
+
+        self.T_camera_world = None
+        self.T_world_camera = None
 
     def start(self):
         t = threading.Thread(target=self.initGL, name="FramesViewer_thread")
@@ -98,12 +102,20 @@ class FramesViewer():
         for name, (frame, color, thickness) in self.frames.items():
             self.displayFrame(frame, color, thickness)
 
+
+        self.T_camera_world = np.array(glGetFloatv(GL_MODELVIEW_MATRIX))
+        self.T_world_camera = np.linalg.inv(self.T_camera_world)
+        # print(np.around(self.T_world_camera,2))
+        # utils.rayFromMouse(self.T_camera_world)
+
         if self.mouse_l_pressed:
             if self.ctrl_pressed:
-                pass
-                # self.move_camera(self.mouse_rel)
+                self.move_camera()
             else:
-                self.rotate_camera(-self.mouse_rel[0]*0.001, [0, 0, 1*abs(self.mouse_rel[0])])
+                self.rotate_camera()
+                # self.rotate_camera(-self.mouse_rel[0]*0.001, [0, 0, 1*abs(self.mouse_rel[0])])
+        else:
+            self.mouse_rel = np.array([0, 0])
 
 
         glutSwapBuffers()
@@ -160,20 +172,31 @@ class FramesViewer():
         glLoadIdentity()
         gluLookAt(pos[0], pos[1], pos[2], center[0], center[1], center[2], up[0], up[1], up[2])
 
-    def rotate_camera(self, angle, axis): # angle in rad
+    def rotate_camera(self):
+        # axis = [0, -0.005*self.mouse_rel[1], -0.005*self.mouse_rel[0]]
+        # axis = [0, 0, -0.005*self.mouse_rel[0]]
+        axis = [0, 0, -self.mouse_rel[0]*0.005]
+
+
+        # TODO rotate about camera_position[3:6] (center)
 
         pos = self.camera_position[:3]
         axis = np.array(axis)
-        rot_mat = R.from_euler('xyz', axis*angle, degrees=False).as_matrix()
+        rot_mat = R.from_euler('xyz', axis, degrees=False).as_matrix()
         new_pos = rot_mat @ pos
 
         self.camera_position[:3] = new_pos
 
         self.set_camera_position(new_pos, self.camera_position[3:6])
 
+    def move_camera(self):
 
-    def move_camera(self, vec):
-        # TODO do with raycasting
+        mouse_rel = np.array([*self.mouse_rel, 0])
+        mouse_rel[0] = -mouse_rel[0]
+
+        T_camera_world = utils.translateInSelf(self.T_camera_world.copy(), mouse_rel)
+
+        vec = T_camera_world[:3, 3]
 
         self.camera_position[0] += vec[0]*0.01
         self.camera_position[1] += vec[1]*0.01
@@ -306,7 +329,8 @@ class utils():
         frame = np.linalg.inv(toOrigin) @ frame
 
         return frame
-
+        
+    @staticmethod
     def rotateAbout(frame, rotation, center):
         toOrigin         = np.eye(4)
         toOrigin[:3, :3] = frame[:3, :3]
@@ -319,6 +343,7 @@ class utils():
         frame = np.linalg.inv(toOrigin) @ frame
 
         return frame
+        
     @staticmethod
     def translateInSelf(frame, translation):
 
@@ -332,4 +357,40 @@ class utils():
         frame = np.linalg.inv(toOrigin) @ frame
 
         return frame
+
+    # @staticmethod
+    # def rayFromMouse(T_camera_world):
+    #     z = np.linalg.inv(T_camera_world) * [0,0,-1,0]
+        # y = np.linalg.inv(T_camera_world) * [0,1,0,0]
+        # x = np.linalg.inv(T_camera_world) * [1,0,0,0]
+
+        # print(z)
+        # camera_pos = np.linalg.inv(T_camera_world)[:3, 3]
+
+        # ray = 
+
+
+
+    # @staticmethod
+    # def createRayDir(mouse_pos, window_size, T_camera_world):
+
+    #     # Normalized Coordinate Space
+    #     x = 2.0 * mouse_pos.x() / window_size[0] - 1
+    #     y = 2.0 * mouse_pos.y() / window_size[1] - 1
+
+    #     clip = np.array([x, -y, -1.0, 1.0])
+    #     proj = [clip @ np.linalg.inv(T_camera_world)]
+
+
+    #     proj = QVector4D((clip * self.__projectionMatrix.inverted()[0]).toVector2D(), -1.0, 0.0)
+
+    #     return (proj * self.__viewMatrix).toVector3D().normalized()
+
+    # def getRayGridIntersecton(self, mouse_pos: QVector2D):
+    #     ray_dir = self.createRayDir(mouse_pos)
+
+    #     n = QVector3D(0.0, 1.0, 0.0)
+    #     t = -QVector3D.dotProduct(self.__camPos, n) / QVector3D.dotProduct(ray_dir, n)
+
+    #     return self.__camPos + ray_dir * t
 
