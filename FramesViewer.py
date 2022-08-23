@@ -98,22 +98,22 @@ class FramesViewer():
         t = round(time.time() - self.startTime)
 
         self.displayWorld()
-
-        for name, (frame, color, thickness) in self.frames.items():
-            self.displayFrame(frame, color, thickness)
+        
+        try:
+            for name, (frame, color, thickness) in self.frames.items():
+                self.displayFrame(frame, color, thickness)
+        except RuntimeError as e:
+            print("RuntimeError :", e)
 
 
         self.T_camera_world = np.array(glGetFloatv(GL_MODELVIEW_MATRIX))
         self.T_world_camera = np.linalg.inv(self.T_camera_world)
-        # print(np.around(self.T_world_camera,2))
-        # utils.rayFromMouse(self.T_camera_world)
 
         if self.mouse_l_pressed:
             if self.ctrl_pressed:
                 self.move_camera()
             else:
                 self.rotate_camera()
-                # self.rotate_camera(-self.mouse_rel[0]*0.001, [0, 0, 1*abs(self.mouse_rel[0])])
         else:
             self.mouse_rel = np.array([0, 0])
 
@@ -357,40 +357,3 @@ class utils():
         frame = np.linalg.inv(toOrigin) @ frame
 
         return frame
-
-    # @staticmethod
-    # def rayFromMouse(T_camera_world):
-    #     z = np.linalg.inv(T_camera_world) * [0,0,-1,0]
-        # y = np.linalg.inv(T_camera_world) * [0,1,0,0]
-        # x = np.linalg.inv(T_camera_world) * [1,0,0,0]
-
-        # print(z)
-        # camera_pos = np.linalg.inv(T_camera_world)[:3, 3]
-
-        # ray = 
-
-
-
-    # @staticmethod
-    # def createRayDir(mouse_pos, window_size, T_camera_world):
-
-    #     # Normalized Coordinate Space
-    #     x = 2.0 * mouse_pos.x() / window_size[0] - 1
-    #     y = 2.0 * mouse_pos.y() / window_size[1] - 1
-
-    #     clip = np.array([x, -y, -1.0, 1.0])
-    #     proj = [clip @ np.linalg.inv(T_camera_world)]
-
-
-    #     proj = QVector4D((clip * self.__projectionMatrix.inverted()[0]).toVector2D(), -1.0, 0.0)
-
-    #     return (proj * self.__viewMatrix).toVector3D().normalized()
-
-    # def getRayGridIntersecton(self, mouse_pos: QVector2D):
-    #     ray_dir = self.createRayDir(mouse_pos)
-
-    #     n = QVector3D(0.0, 1.0, 0.0)
-    #     t = -QVector3D.dotProduct(self.__camPos, n) / QVector3D.dotProduct(ray_dir, n)
-
-    #     return self.__camPos + ray_dir * t
-
