@@ -35,8 +35,8 @@ class FramesViewer():
 
     # Frames must be a pose matrix, a numpy array of shape (4, 4)
     # If the frame already exists, it is updated
-    def pushFrame(self, frame, name, color=None):
-        self.frames[name] = (frame, color)
+    def pushFrame(self, frame, name, color=None, thickness=4):
+        self.frames[name] = (frame, color, thickness)
 
     def popFrame(self, name):
         if name in self.frames:
@@ -95,8 +95,8 @@ class FramesViewer():
 
         self.displayWorld()
 
-        for name, (frame, color) in self.frames.items():
-            self.displayFrame(frame, color)
+        for name, (frame, color, thickness) in self.frames.items():
+            self.displayFrame(frame, color, thickness)
 
         if self.mouse_l_pressed:
             if self.ctrl_pressed:
@@ -110,7 +110,7 @@ class FramesViewer():
         glutPostRedisplay()    
 
 
-    def displayFrame(self, pose, color=None):   
+    def displayFrame(self, pose, color=None, thickness=4):   
 
         glPushMatrix()
 
@@ -124,7 +124,7 @@ class FramesViewer():
         z_end_vec = rot_mat @ [0, 0, size] + tvec
 
         glDisable(GL_LIGHTING)    
-        glLineWidth(4)
+        glLineWidth(thickness)
 
         # X
         glColor3f(1, 0, 0)
@@ -293,19 +293,6 @@ class utils():
         pose[:3, 3] = translation
         return pose
 
-
-    @staticmethod
-    def translate(frame, translation):
-        frame[:3, 3] += translation
-
-    @staticmethod
-    def rotateInPlace(frame, rotation):
-        translation = frame[:3, 3].copy()
-        utils.translate(frame, -translation)
-        frame = utils.make_pose([0, 0, 0], rotation) @ frame
-        utils.translate(frame, translation)
-        return frame
-
     @staticmethod
     def rotateInSelf(frame, rotation):
 
@@ -315,8 +302,33 @@ class utils():
         toOrigin         = np.linalg.inv(toOrigin)
 
         frame = toOrigin @ frame
-        frame = utils.make_pose([0, 0, 0], rotation) @ frame
-        
+        frame = utils.make_pose([0, 0, 0], rotation) @ frame        
+        frame = np.linalg.inv(toOrigin) @ frame
+
+        return frame
+
+    def rotateAbout(frame, rotation, center):
+        toOrigin         = np.eye(4)
+        toOrigin[:3, :3] = frame[:3, :3]
+        # tmp = frame @ utils.make_pose(center, [0, 0, 0])
+        toOrigin[:3, 3]  = center
+        toOrigin         = np.linalg.inv(toOrigin)
+
+        frame = toOrigin @ frame
+        frame = utils.make_pose([0, 0, 0], rotation) @ frame        
+        frame = np.linalg.inv(toOrigin) @ frame
+
+        return frame
+    @staticmethod
+    def translateInSelf(frame, translation):
+
+        toOrigin         = np.eye(4)
+        toOrigin[:3, :3] = frame[:3, :3]
+        toOrigin[:3, 3]  = frame[:3, 3]
+        toOrigin         = np.linalg.inv(toOrigin)
+
+        frame = toOrigin @ frame
+        frame = utils.make_pose(translation, [0, 0, 0]) @ frame
         frame = np.linalg.inv(toOrigin) @ frame
 
         return frame
