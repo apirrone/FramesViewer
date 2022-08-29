@@ -103,7 +103,8 @@ class FramesViewer():
             for name, (frame, color, thickness) in self.frames.items():
                 self.displayFrame(frame, color, thickness)
         except RuntimeError as e:
-            print("RuntimeError :", e)
+            # print("RuntimeError :", e)
+            pass
 
 
         self.T_camera_world = np.array(glGetFloatv(GL_MODELVIEW_MATRIX))
@@ -357,3 +358,8 @@ class utils():
         frame = np.linalg.inv(toOrigin) @ frame
 
         return frame
+
+    @staticmethod
+    def translateAbsolute(frame, translation):
+        translate = utils.make_pose(translation, [0, 0, 0])
+        return translate @ frame
