@@ -40,7 +40,7 @@ class FramesViewer():
     # Frames must be a pose matrix, a numpy array of shape (4, 4)
     # If the frame already exists, it is updated
     def pushFrame(self, frame, name, color=None, thickness=4):
-        self.frames[name] = (frame, color, thickness)
+        self.frames[name] = (frame.copy(), color, thickness)
 
     def popFrame(self, name):
         if name in self.frames:
@@ -123,7 +123,9 @@ class FramesViewer():
         glutPostRedisplay()    
 
 
-    def displayFrame(self, pose, color=None, thickness=4):   
+    def displayFrame(self, _pose, color=None, thickness=4):   
+
+        pose = _pose.copy()
 
         glPushMatrix()
 
@@ -318,7 +320,9 @@ class utils():
         return pose
 
     @staticmethod
-    def rotateInSelf(frame, rotation):
+    def rotateInSelf(_frame, rotation):
+
+        frame            = _frame.copy()
 
         toOrigin         = np.eye(4)
         toOrigin[:3, :3] = frame[:3, :3]
@@ -332,10 +336,11 @@ class utils():
         return frame
         
     @staticmethod
-    def rotateAbout(frame, rotation, center):
+    def rotateAbout(_frame, rotation, center):
+        frame            = _frame.copy()
+
         toOrigin         = np.eye(4)
         toOrigin[:3, :3] = frame[:3, :3]
-        # tmp = frame @ utils.make_pose(center, [0, 0, 0])
         toOrigin[:3, 3]  = center
         toOrigin         = np.linalg.inv(toOrigin)
 
@@ -362,4 +367,4 @@ class utils():
     @staticmethod
     def translateAbsolute(frame, translation):
         translate = utils.make_pose(translation, [0, 0, 0])
-        return translate @ frame
+        return translate @ frame.copy()
