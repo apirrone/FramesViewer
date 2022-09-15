@@ -4,7 +4,10 @@ A simple live 6D frames viewer
 
 ![FramesViewer](assets/FramesViewer.png)
 
-
+## Installation
+```python
+pip3 install -e .
+```
 
 ## Example : 
 ```python
