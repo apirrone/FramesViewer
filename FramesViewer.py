@@ -26,6 +26,7 @@ class FramesViewer():
         self.t = 0
         self.startTime = time.time()
         self.frames = {}
+        self.points = {}
         self.size = size # sort of scaling factor. Adjust this depending on the scale of your coordinates
 
         self.T_camera_world = None
@@ -40,6 +41,13 @@ class FramesViewer():
     # If the frame already exists, it is updated
     def pushFrame(self, frame, name, color=None, thickness=4):
         self.frames[name] = (frame.copy(), color, thickness)
+
+    # Point is a (x, y, z) position in space
+    def pushPoint(self, point, name, color=(0, 0, 0), size=1):
+        if name not in self.points:
+            self.points[name] = []
+
+        self.points[name].append((point.copy(), color, size))
 
     def popFrame(self, name):
         if name in self.frames:
@@ -104,6 +112,13 @@ class FramesViewer():
         except RuntimeError as e:
             # print("RuntimeError :", e)
             pass
+        try:
+            for name, points in self.points.items():
+                for point, color, size in points:
+                    self.displayPoint(point, color, size)
+        except RuntimeError as e:
+            print("RuntimeError :", e)
+            pass
 
 
         self.T_camera_world = np.array(glGetFloatv(GL_MODELVIEW_MATRIX))
@@ -121,6 +136,23 @@ class FramesViewer():
         glutSwapBuffers()
         glutPostRedisplay()    
 
+
+    def displayPoint(self, _pos, color=(0, 0, 0), size=1):
+        pos = _pos.copy()
+
+        glPushMatrix()
+        glDisable(GL_LIGHTING)    
+
+        glColor3f(color[0], color[1], color[2])
+        glPointSize(size)
+        glBegin(GL_POINTS)
+
+        glVertex3f(pos[0]*self.zoom, pos[1]*self.zoom, pos[2]*self.zoom)
+        glEnd()
+
+
+        glEnable(GL_LIGHTING)
+        glPopMatrix()
 
     def displayFrame(self, _pose, color=None, thickness=4):   
 
