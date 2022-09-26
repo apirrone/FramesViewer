@@ -49,6 +49,10 @@ class FramesViewer():
 
         self.points[name].append((point.copy(), color, size))
 
+    def cleanPoints(self, name):
+        if name in self.points:
+            del self.points[name]
+
     def popFrame(self, name):
         if name in self.frames:
             del self.frames[name]
@@ -112,6 +116,7 @@ class FramesViewer():
         except RuntimeError as e:
             # print("RuntimeError :", e)
             pass
+
         try:
             for name, points in self.points.items():
                 for point, color, size in points:
