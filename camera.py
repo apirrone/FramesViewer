@@ -4,59 +4,57 @@ from OpenGL.GLU import *
 from OpenGL.GL import *
 from scipy.spatial.transform import Rotation as R
 from FramesViewer import utils
+import time 
 
 class Camera():
-    def __init__(self):
-        self.position = [3, -3, 3, 0, 0, 0, 0, 0, 1]
-        self.zoom = 5
-        self.T_camera_world = None
-        self.T_world_camera = None
+    def __init__(self, pos, center, up=[0, 0, 1], zoom=5):
+        self.pos    = pos
+        self.center = center
+        self.up     = up
+        self.zoom   = zoom
 
-    def getCameraPosition(self):
-        return self.position
+        self.pose   = None
 
-    def setCameraPosition(self, pos, center, up=[0, 0, 1]):
+        self.dt     = 0
+
+        self.update()
+
+    def updatePose(self):
+        self.pose         = np.eye(4)
+        self.pose[:3, :3] = np.array(glGetFloatv(GL_MODELVIEW_MATRIX))[:3, :3]
+        self.pose[:3, 3]  = self.pos
+
+    def update(self, dt):
+        self.dt = 0
+        
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
-        gluLookAt(pos[0], pos[1], pos[2], center[0], center[1], center[2], up[0], up[1], up[2])
+        gluLookAt(self.pos[0], self.pos[1], self.pos[2], self.center[0], self.center[1], self.center[2], self.up[0], self.up[1], self.up[2])
 
-    def update(self):
-        self.T_camera_world = np.array(glGetFloatv(GL_MODELVIEW_MATRIX))
-        self.T_world_camera = np.linalg.inv(self.T_camera_world)
+        self.updatePose()
 
     def applyZoom(self, incr_value):
         self.zoom = max(0, self.zoom - incr_value)
 
-    def move(self, mouse_rel):
-
+    def getTransDiff(self, mouse_rel):
         mouse_rel = np.array([*mouse_rel, 0])
         mouse_rel[0] = -mouse_rel[0]
 
-        T_camera_world = utils.translateInSelf(self.T_camera_world.copy(), mouse_rel)
+        old_pose = self.pose.copy()
+        self.pose = utils.translateInSelf(self.pose, mouse_rel)
+        trans_diff = self.pose[:3, 3] - old_pose[:3, 3]
 
-        vec = T_camera_world[:3, 3]
+        return trans_diff
 
-        self.position[0] += vec[0]*0.01
-        self.position[1] += vec[1]*0.01
-        self.position[3] += vec[0]*0.01
-        self.position[4] += vec[1]*0.01
 
-        self.setCameraPosition(self.position[:3], self.position[3:6])
+    def move(self, mouse_rel):
+        trans_diff = self.getTransDiff(mouse_rel)
+
+        self.pos    += trans_diff*0.01
+        self.center += trans_diff*0.01
 
     def rotate(self, mouse_rel):
-        # axis = [0, -0.005*self.mouse_rel[1], -0.005*self.mouse_rel[0]]
-        # axis = [0, 0, -0.005*self.mouse_rel[0]]
-        axis = [0, 0, -mouse_rel[0]*0.005]
-
-
-        # TODO rotate about camera_position[3:6] (center)
-
-        pos = self.position[:3]
-        axis = np.array(axis)
-        rot_mat = R.from_euler('xyz', axis, degrees=False).as_matrix()
-        new_pos = rot_mat @ pos
-
-        self.position[:3] = new_pos
-
-        self.setCameraPosition(new_pos, self.position[3:6])
+        trans_diff = self.getTransDiff(mouse_rel)
+        
+        self.pos   += trans_diff*0.01
 

@@ -18,20 +18,25 @@ class FramesViewer():
     def __init__(self, window_size, name = b"FramesViewer", size = 0.1):
         self.window_size = window_size
         self.name = name
-        # self.camera_position = [3, -3, 3, 0, 0, 0, 0, 0, 1]
-        # self.camera.zoom = 5
+
         self.prev_mouse_pos = np.array([0, 0])
         self.mouse_l_pressed = False
         self.mouse_m_pressed = False
         self.ctrl_pressed = False
         self.mouse_rel = np.array([0, 0])
+
         self.t = None
+
         self.startTime = time.time()
+
         self.frames = {}
         self.points = {}
+
         self.size = size # sort of scaling factor. Adjust this depending on the scale of your coordinates
 
-        self.camera = Camera()
+        self.camera = Camera((3, -3, 3), (0, 0, 0))
+        
+        self.dt = 0
 
     def start(self):
         self.t = threading.Thread(target=self.initGL, name="FramesViewer_thread")
@@ -89,8 +94,6 @@ class FramesViewer():
         gluPerspective(70., 1. ,1. ,40.)
 
         glMatrixMode(GL_MODELVIEW)
-        
-        gluLookAt(self.camera.position[0], self.camera.position[1], self.camera.position[2], self.camera.position[3], self.camera.position[4], self.camera.position[5], self.camera.position[6], self.camera.position[7], self.camera.position[8])
         
         glPushMatrix()
         
@@ -150,8 +153,9 @@ class FramesViewer():
                 self.camera.move(self.mouse_rel)
             else:
                 self.camera.rotate(self.mouse_rel)
-        else:
-            self.mouse_rel = np.array([0, 0])
+
+        self.mouse_rel = np.array([0, 0])
+
 
 
         glutSwapBuffers()
@@ -334,7 +338,6 @@ class utils():
 
     @staticmethod
     def rotateInSelf(_frame, rotation):
-
         frame            = _frame.copy()
 
         toOrigin         = np.eye(4)
@@ -364,7 +367,8 @@ class utils():
         return frame
         
     @staticmethod
-    def translateInSelf(frame, translation):
+    def translateInSelf(_frame, translation):
+        frame = _frame.copy()
 
         toOrigin         = np.eye(4)
         toOrigin[:3, :3] = frame[:3, :3]
@@ -378,9 +382,12 @@ class utils():
         return frame
 
     @staticmethod
-    def translateAbsolute(frame, translation):
+    def translateAbsolute(_frame, translation):
+        frame = _frame.copy()
+
         translate = utils.make_pose(translation, [0, 0, 0])
-        return translate @ frame.copy()
+
+        return translate @ frame
 
 
 from camera import Camera
