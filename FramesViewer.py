@@ -1,4 +1,3 @@
-from socket import TCP_WINDOW_CLAMP
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 from OpenGL.GL import *
@@ -8,34 +7,36 @@ from scipy.spatial.transform import Rotation as R
 import time
 import threading
 
+# Warning : Had to import Camera class at the end of the file (after defining utils)
+
 # TODO better camera
 # TODO display the frames names in the viewer
+# TODO proper package (avoid defining utils here, should be in a separate file)
 
 class FramesViewer():
     
     def __init__(self, window_size, name = b"FramesViewer", size = 0.1):
         self.window_size = window_size
         self.name = name
-        self.camera_position = [3, -3, 3, 0, 0, 0, 0, 0, 1]
-        self.zoom = 5
+        # self.camera_position = [3, -3, 3, 0, 0, 0, 0, 0, 1]
+        # self.camera.zoom = 5
         self.prev_mouse_pos = np.array([0, 0])
         self.mouse_l_pressed = False
         self.mouse_m_pressed = False
         self.ctrl_pressed = False
         self.mouse_rel = np.array([0, 0])
-        self.t = 0
+        self.t = None
         self.startTime = time.time()
         self.frames = {}
         self.points = {}
         self.size = size # sort of scaling factor. Adjust this depending on the scale of your coordinates
 
-        self.T_camera_world = None
-        self.T_world_camera = None
+        self.camera = Camera()
 
     def start(self):
-        t = threading.Thread(target=self.initGL, name="FramesViewer_thread")
-        t.daemon = True
-        t.start()
+        self.t = threading.Thread(target=self.initGL, name="FramesViewer_thread")
+        self.t.daemon = True
+        self.t.start()
 
     # Frames must be a pose matrix, a numpy array of shape (4, 4)
     # If the frame already exists, it is updated
@@ -89,7 +90,7 @@ class FramesViewer():
 
         glMatrixMode(GL_MODELVIEW)
         
-        gluLookAt(self.camera_position[0], self.camera_position[1], self.camera_position[2], self.camera_position[3], self.camera_position[4], self.camera_position[5], self.camera_position[6], self.camera_position[7], self.camera_position[8])
+        gluLookAt(self.camera.position[0], self.camera.position[1], self.camera.position[2], self.camera.position[3], self.camera.position[4], self.camera.position[5], self.camera.position[6], self.camera.position[7], self.camera.position[8])
         
         glPushMatrix()
         
@@ -97,14 +98,31 @@ class FramesViewer():
         glutMotionFunc(self.mouseMotion)
         glutKeyboardFunc(self.keyboard)
 
-
         glutMainLoop()
 
         glutSwapBuffers()
         glutPostRedisplay()
 
+    # TODO not working yet
+    def handleResize(self):
+        tmp = glGetIntegerv(GL_VIEWPORT)
+        current_window_size = (tmp[2], tmp[3])
+        if current_window_size != self.window_size:
+            self.window_size = current_window_size
+
+            # glutReshapeWindow(self.window_size[0], self.window_size[1])
+            
+            # glViewport(tmp[0], tmp[1], tmp[2], tmp[3])
+            # glutPostRedisplay()
+            # print("coucou")
+
+
+
+
     def display(self):
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
+
+        # self.handleResize()
 
         t = round(time.time() - self.startTime)
 
@@ -124,16 +142,14 @@ class FramesViewer():
         except RuntimeError as e:
             print("RuntimeError :", e)
             pass
-
-
-        self.T_camera_world = np.array(glGetFloatv(GL_MODELVIEW_MATRIX))
-        self.T_world_camera = np.linalg.inv(self.T_camera_world)
+    
+        self.camera.update()
 
         if self.mouse_l_pressed:
             if self.ctrl_pressed:
-                self.move_camera()
+                self.camera.move(self.mouse_rel)
             else:
-                self.rotate_camera()
+                self.camera.rotate(self.mouse_rel)
         else:
             self.mouse_rel = np.array([0, 0])
 
@@ -152,7 +168,7 @@ class FramesViewer():
         glPointSize(size)
         glBegin(GL_POINTS)
 
-        glVertex3f(pos[0]*self.zoom, pos[1]*self.zoom, pos[2]*self.zoom)
+        glVertex3f(pos[0]*self.camera.zoom, pos[1]*self.camera.zoom, pos[2]*self.camera.zoom)
         glEnd()
 
 
@@ -165,9 +181,9 @@ class FramesViewer():
 
         glPushMatrix()
 
-        size = self.size*self.zoom
+        size = self.size*self.camera.zoom
 
-        tvec = pose[:3, 3]*self.zoom
+        tvec = pose[:3, 3]*self.camera.zoom
         rot_mat = pose[:3, :3]
 
         x_end_vec = rot_mat @ [size, 0, 0] + tvec
@@ -206,45 +222,6 @@ class FramesViewer():
         glEnable(GL_LIGHTING)
         glPopMatrix()
 
-    def set_camera_position(self, pos, center, up=[0, 0, 1]):
-        glMatrixMode(GL_MODELVIEW)
-        glLoadIdentity()
-        gluLookAt(pos[0], pos[1], pos[2], center[0], center[1], center[2], up[0], up[1], up[2])
-
-    def rotate_camera(self):
-        # axis = [0, -0.005*self.mouse_rel[1], -0.005*self.mouse_rel[0]]
-        # axis = [0, 0, -0.005*self.mouse_rel[0]]
-        axis = [0, 0, -self.mouse_rel[0]*0.005]
-
-
-        # TODO rotate about camera_position[3:6] (center)
-
-        pos = self.camera_position[:3]
-        axis = np.array(axis)
-        rot_mat = R.from_euler('xyz', axis, degrees=False).as_matrix()
-        new_pos = rot_mat @ pos
-
-        self.camera_position[:3] = new_pos
-
-        self.set_camera_position(new_pos, self.camera_position[3:6])
-
-    def move_camera(self):
-
-        mouse_rel = np.array([*self.mouse_rel, 0])
-        mouse_rel[0] = -mouse_rel[0]
-
-        T_camera_world = utils.translateInSelf(self.T_camera_world.copy(), mouse_rel)
-
-        vec = T_camera_world[:3, 3]
-
-        self.camera_position[0] += vec[0]*0.01
-        self.camera_position[1] += vec[1]*0.01
-        self.camera_position[3] += vec[0]*0.01
-        self.camera_position[4] += vec[1]*0.01
-
-        self.set_camera_position(self.camera_position[:3], self.camera_position[3:6])
-
-
     def mouseClick(self, button, mode, x, y):
         if mode == 0:
             self.prev_mouse_pos = np.array([x, y])
@@ -258,9 +235,9 @@ class FramesViewer():
                 self.mouse_l_pressed = False
 
         if button == 3 : 
-            self.zoom += 0.05
+            self.camera.applyZoom(0.05)
         elif button == 4:
-            self.zoom = max(0, self.zoom - 0.05)
+            self.camera.applyZoom(-0.05)
 
         if button == 2:
             if mode == 0:
@@ -289,13 +266,13 @@ class FramesViewer():
 
         glPushMatrix()
 
-        size = self.size*self.zoom
+        size = self.size*self.camera.zoom
         length = 15
         alpha = 0.04
 
         pose = utils.make_pose([0, 0, 0], [0, 0, 0])
 
-        tvec = pose[:3, 3]*self.zoom
+        tvec = pose[:3, 3]*self.camera.zoom
         rot_mat = pose[:3, :3]
 
 
@@ -404,3 +381,6 @@ class utils():
     def translateAbsolute(frame, translation):
         translate = utils.make_pose(translation, [0, 0, 0])
         return translate @ frame.copy()
+
+
+from camera import Camera
