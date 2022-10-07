@@ -10,66 +10,111 @@ import threading
 # Warning : Had to import Camera class at the end of the file (after defining utils)
 
 # TODO display the frames names in the viewer
-# TODO proper package (avoid defining utils here, should be in a separate file)
+# TODO make proper package (avoid defining utils here, should be in a separate file)
 
 class FramesViewer():
     
-    def __init__(self, window_size, name = b"FramesViewer", size = 0.1):
+    def __init__(self, window_size:list = [1000, 1000], name:str = b"FramesViewer", size:int = 0.1):
+        """
+        The constructor for the class FramesViewer.
+        Arguments:
+            window_size : A list of size 2 defining the size of the viewer window in pixels. 
+            name        : The name of the viewer window
+            size        : Sort of a scaling factor. Adjust this depending on the scale of your coordinates
+        """
 
-        self.window_size     = window_size
-        self.name            = name
+        self.__window_size     = window_size
+        self.__name            = name
 
-        self.prev_mouse_pos  = np.array([0, 0])
-        self.mouse_l_pressed = False
-        self.mouse_m_pressed = False
-        self.ctrl_pressed    = False
-        self.mouse_rel       = np.array([0, 0])
+        self.__prev_mouse_pos  = np.array([0, 0])
+        self.__mouse_l_pressed = False
+        self.__mouse_m_pressed = False
+        self.__ctrl_pressed    = False
+        self.__mouse_rel       = np.array([0, 0])
 
-        self.t               = None
+        self.__t               = None
 
-        self.startTime       = time.time()
+        self.__startTime       = time.time()
 
-        self.frames          = {}
-        self.points          = {}
+        self.__frames          = {}
+        self.__points          = {}
 
-        self.size            = size # sort of scaling factor. Adjust this depending on the scale of your coordinates
+        self.__size            = size
 
-        self.camera          = Camera((3, -3, 3), (0, 0, 0))
+        self.__camera          = Camera((3, -3, 3), (0, 0, 0))
 
-        self.prev_t          = time.time()
-        self.dt              = 0
+        self.__prev_t          = time.time()
+        self.__dt              = 0
 
+    # ==============================================================================
+    # Public methods
+    
     def start(self):
-        self.t        = threading.Thread(target=self.initGL, name="FramesViewer_thread")
-        self.t.daemon = True
+        """
+        Starts the viewer thread.
+        """
+        self.__t        = threading.Thread(target=self.__initGL, name=self.__name)
+        self.__t.daemon = True
         
-        self.t.start()
+        self.__t.start()
 
-    # Frames must be a pose matrix, a numpy array of shape (4, 4)
-    # If the frame already exists, it is updated
-    def pushFrame(self, frame, name, color=None, thickness=4):
-        self.frames[name] = (frame.copy(), color, thickness)
+    def pushFrame(self, frame:np.ndarray, name:str, color:tuple=None, thickness:int=4):
+        """
+        Adds or updates a frame.
+        If the frame name does not exist yet, it is added.
+        If the frame name exists, its values is updated.
+        Arguments:
+            frame     : a 6D pose matrix of size [4, 4]
+            name      : the name of the frame
+            color     : a list of size 3 (RGB between 0 and 1)
+            thickness : the thickness of the lines drawn to show the frame
+        """
+        self.__frames[name] = (frame.copy(), color, thickness)
+
+    def deleteFrame(self, name:str):
+        """
+        Deletes the frame of name \"name\".
+        Arguments:
+            name : The name of the frame to be deleted
+        """
+        if name in self.__frames:
+            del self.__frames[name]
 
     # Point is a (x, y, z) position in space
-    def pushPoint(self, point, name, color=(0, 0, 0), size=1):
-        if name not in self.points:
-            self.points[name] = []
+    def pushPoint(self, point:list, name:str, color:tuple=(0, 0, 0), size:int=1):
+        """
+        Adds or updates a points list.
+        If the points list name does not exist yet, it is created.
+        If the points list name exists, the point is added to the list.
+        Arguments:
+            point     : a point's coordinates [x, y, z]
+            name      : the name of the points list
+            color     : a list of size 3 (RGB between 0 and 1)
+            size      : the size of the point
+        """
+        if name not in self.__points:
+            self.__points[name] = []
 
-        self.points[name].append((point.copy(), color, size))
+        self.__points[name].append((point.copy(), color, size))
 
-    def cleanPoints(self, name):
-        if name in self.points:
-            del self.points[name]
 
-    def popFrame(self, name):
-        if name in self.frames:
-            del self.frames[name]
+    def deletePointsList(self, name:str):
+        """
+        Deletes the points list of name \"name\".
+        Arguments:
+            name : The name of the points list to be deleted
+        """
+        if name in self.__points:
+            del self.__points[name]
 
-    def initGL(self):
+    # ==============================================================================
+    # Private methods
+
+    def __initGL(self):
         glutInit(sys.argv)
         glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
-        glutInitWindowSize(self.window_size[0], self.window_size[1])
-        glutCreateWindow(self.name)
+        glutInitWindowSize(self.__window_size[0], self.__window_size[1])
+        glutCreateWindow(self.__name)
 
         glClearColor(1.,1.,1.,1.)
         glShadeModel(GL_SMOOTH)
@@ -89,7 +134,7 @@ class FramesViewer():
         
         glEnable(GL_LIGHT0)
         
-        glutDisplayFunc(self.display)
+        glutDisplayFunc(self.__display)
         
         glMatrixMode(GL_PROJECTION)
 
@@ -99,9 +144,9 @@ class FramesViewer():
         
         glPushMatrix()
         
-        glutMouseFunc(self.mouseClick)
-        glutMotionFunc(self.mouseMotion)
-        glutKeyboardFunc(self.keyboard)
+        glutMouseFunc(self.__mouseClick)
+        glutMotionFunc(self.__mouseMotion)
+        glutKeyboardFunc(self.__keyboard)
 
         glutMainLoop()
 
@@ -109,7 +154,7 @@ class FramesViewer():
         glutPostRedisplay()
 
     # TODO not working yet
-    def handleResize(self):
+    def __handleResize(self):
         tmp = glGetIntegerv(GL_VIEWPORT)
         current_window_size = (tmp[2], tmp[3])
         if current_window_size != self.window_size:
@@ -121,49 +166,47 @@ class FramesViewer():
             # glutPostRedisplay()
             # print("coucou")
 
+    def __display(self):
 
-
-
-    def display(self):
-
-        self.dt = time.time() - self.prev_t
-        self.prev_t = time.time()
+        self.__dt = time.time() - self.__prev_t
+        self.__prev_t = time.time()
 
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
         # self.handleResize()
 
-        self.displayWorld()
+        self.__displayWorld()
         
         try:
-            for name, (frame, color, thickness) in self.frames.items():
-                self.displayFrame(frame, color, thickness)
+            for name, (frame, color, thickness) in self.__frames.items():
+                self.__displayFrame(frame, color, thickness)
         except RuntimeError as e:
             # print("RuntimeError :", e)
             pass
+
         try:
-            for name, points in self.points.items():
+            for name, points in self.__points.items():
                 for point, color, size in points:
-                    self.displayPoint(point, color, size)
+                    self.__displayPoint(point, color, size)
         except RuntimeError as e:
             print("RuntimeError :", e)
             pass
     
-        self.camera.update(self.dt)
+        self.__camera.update(self.__dt)
 
-        if self.mouse_l_pressed:
-            if self.ctrl_pressed:
-                self.camera.move(self.mouse_rel)
+        if self.__mouse_l_pressed:
+            if self.__ctrl_pressed:
+                self.__camera.move(self.__mouse_rel)
             else:
-                self.camera.rotate(self.mouse_rel)
+                self.__camera.rotate(self.__mouse_rel)
 
-        self.mouse_rel = np.array([0, 0])
+        self.__mouse_rel = np.array([0, 0])
 
         glutSwapBuffers()
         glutPostRedisplay()    
 
 
-    def displayPoint(self, _pos, color=(0, 0, 0), size=1):
+    def __displayPoint(self, _pos, color=(0, 0, 0), size=1):
         pos = _pos.copy()
 
         glPushMatrix()
@@ -173,21 +216,20 @@ class FramesViewer():
         glPointSize(size)
         glBegin(GL_POINTS)
 
-        glVertex3f(pos[0]*self.camera.zoom, pos[1]*self.camera.zoom, pos[2]*self.camera.zoom)
+        glVertex3f(pos[0]*self.__camera.getZoom(), pos[1]*self.__camera.getZoom(), pos[2]*self.__camera.getZoom())
         glEnd()
 
         glEnable(GL_LIGHTING)
         glPopMatrix()
 
-    def displayFrame(self, _pose, color=None, thickness=4):   
-
+    def __displayFrame(self, _pose, color=None, thickness=4):   
         pose = _pose.copy()
 
         glPushMatrix()
 
-        size = self.size*self.camera.zoom
+        size = self.__size*self.__camera.getZoom()
 
-        trans = pose[:3, 3]*self.camera.zoom
+        trans = pose[:3, 3]*self.__camera.getZoom()
         rot_mat = pose[:3, :3]
 
         x_end_vec = rot_mat @ [size, 0, 0] + trans
@@ -226,57 +268,56 @@ class FramesViewer():
         glEnable(GL_LIGHTING)
         glPopMatrix()
 
-    def mouseClick(self, button, mode, x, y):
+    def __mouseClick(self, button, mode, x, y):
         if mode == 0:
-            self.prev_mouse_pos = np.array([x, y])
+            self.__prev_mouse_pos = np.array([x, y])
         else:
-            self.prev_mouse_pos = np.array([0, 0])
+            self.__prev_mouse_pos = np.array([0, 0])
 
         if button == 0:
             if mode == 0:
-                self.mouse_l_pressed = True
+                self.__mouse_l_pressed = True
             elif mode == 1:
-                self.mouse_l_pressed = False
+                self.__mouse_l_pressed = False
 
         if button == 3 : 
-            self.camera.applyZoom(10)
+            self.__camera.applyZoom(10)
         elif button == 4:
-            self.camera.applyZoom(-10)
+            self.__camera.applyZoom(-10)
 
         if button == 2:
             if mode == 0:
-                self.mouse_m_pressed = True
+                self.__mouse_m_pressed = True
             elif mode == 1:
-                self.mouse_m_pressed = False
+                self.__mouse_m_pressed = False
 
         if glutGetModifiers() == 2:
-            self.ctrl_pressed = True
+            self.__ctrl_pressed = True
         else:    
-            self.ctrl_pressed = False
+            self.__ctrl_pressed = False
 
-    def mouseMotion(self, x, y):
-        self.mouse_pos = np.array([x, y])
-        self.mouse_rel = self.mouse_pos - self.prev_mouse_pos
+    def __mouseMotion(self, x, y):
+        mouse_pos = np.array([x, y])
+        self.__mouse_rel = mouse_pos - self.__prev_mouse_pos
 
-        self.prev_mouse_pos = self.mouse_pos.copy()
+        self.__prev_mouse_pos = mouse_pos.copy()
 
-    def keyboard(self, key, x, y):
+    def __keyboard(self, key, x, y):
         pass
 
+    def __displayWorld(self):
 
-    def displayWorld(self):
-
-        self.displayFrame(utils.make_pose([0, 0, 0], [0, 0, 0])) 
+        self.__displayFrame(utils.make_pose([0, 0, 0], [0, 0, 0])) 
 
         glPushMatrix()
 
-        size = self.size*self.camera.zoom
+        size = self.__size*self.__camera.getZoom()
         length = 15
         alpha = 0.04
 
         pose = utils.make_pose([0, 0, 0], [0, 0, 0])
 
-        trans = pose[:3, 3]*self.camera.zoom
+        trans = pose[:3, 3]*self.__camera.getZoom()
         rot_mat = pose[:3, :3]
 
 
@@ -325,12 +366,21 @@ class FramesViewer():
 
 
 class utils():
-    def __init__(self):
-        pass
+    """
+    A static class containing useful functions to manipulate 6D pose matrices
+    """
 
     @staticmethod
-    def make_pose(translation, xyz, degrees=True):
-
+    def make_pose(translation:np.ndarray, xyz:np.ndarray, degrees:bool=True):
+        """
+        Creates a 6D pose matrix from a position vector (translation) and \"roll pitch yaw\" angles (xyz).
+        Arguments :
+            translation : a list of size 3. This is the translation component of the pose matrix
+            xyz         : a list of size 3. x, y and z are the roll, pitch, yaw angles that are used to build the rotation component of the pose matrix
+            degrees     : True or False. are the angles you provided for \"xyz\" in degrees or in radians ?
+        Returns : 
+            pose : the constructed pose matrix. This is a 4x4 numpy array
+        """
         pose = np.eye(4)
         pose[:3, :3] = R.from_euler('xyz', xyz, degrees=degrees).as_matrix()
         pose[:3, 3] = translation
@@ -338,6 +388,9 @@ class utils():
 
     @staticmethod
     def rotateInSelf(_frame, rotation):
+        """
+        TODO
+        """
         frame            = _frame.copy()
 
         toOrigin         = np.eye(4)
@@ -353,6 +406,9 @@ class utils():
         
     @staticmethod
     def rotateAbout(_frame, rotation, center):
+        """
+        TODO
+        """
         frame            = _frame.copy()
 
         toOrigin         = np.eye(4)
@@ -368,6 +424,9 @@ class utils():
         
     @staticmethod
     def translateInSelf(_frame, translation):
+        """
+        TODO
+        """
         frame = _frame.copy()
 
         toOrigin         = np.eye(4)
@@ -383,6 +442,9 @@ class utils():
 
     @staticmethod
     def translateAbsolute(_frame, translation):
+        """
+        TODO
+        """
         frame = _frame.copy()
 
         translate = utils.make_pose(translation, [0, 0, 0])
