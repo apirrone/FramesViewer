@@ -9,7 +9,6 @@ import threading
 
 # Warning : Had to import Camera class at the end of the file (after defining utils)
 
-# TODO better camera
 # TODO display the frames names in the viewer
 # TODO proper package (avoid defining utils here, should be in a separate file)
 
@@ -35,7 +34,8 @@ class FramesViewer():
         self.size = size # sort of scaling factor. Adjust this depending on the scale of your coordinates
 
         self.camera = Camera((3, -3, 3), (0, 0, 0))
-        
+
+        self.prev_t = time.time()
         self.dt = 0
 
     def start(self):
@@ -123,11 +123,14 @@ class FramesViewer():
 
 
     def display(self):
+
+        self.dt = time.time() - self.prev_t
+
+        self.prev_t = time.time()
+
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
         # self.handleResize()
-
-        t = round(time.time() - self.startTime)
 
         self.displayWorld()
         
@@ -146,7 +149,7 @@ class FramesViewer():
             print("RuntimeError :", e)
             pass
     
-        self.camera.update()
+        self.camera.update(self.dt)
 
         if self.mouse_l_pressed:
             if self.ctrl_pressed:
@@ -239,9 +242,9 @@ class FramesViewer():
                 self.mouse_l_pressed = False
 
         if button == 3 : 
-            self.camera.applyZoom(0.05)
+            self.camera.applyZoom(10)
         elif button == 4:
-            self.camera.applyZoom(-0.05)
+            self.camera.applyZoom(-10)
 
         if button == 2:
             if mode == 0:
