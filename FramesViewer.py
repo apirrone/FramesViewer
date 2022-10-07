@@ -15,32 +15,34 @@ import threading
 class FramesViewer():
     
     def __init__(self, window_size, name = b"FramesViewer", size = 0.1):
-        self.window_size = window_size
-        self.name = name
 
-        self.prev_mouse_pos = np.array([0, 0])
+        self.window_size     = window_size
+        self.name            = name
+
+        self.prev_mouse_pos  = np.array([0, 0])
         self.mouse_l_pressed = False
         self.mouse_m_pressed = False
-        self.ctrl_pressed = False
-        self.mouse_rel = np.array([0, 0])
+        self.ctrl_pressed    = False
+        self.mouse_rel       = np.array([0, 0])
 
-        self.t = None
+        self.t               = None
 
-        self.startTime = time.time()
+        self.startTime       = time.time()
 
-        self.frames = {}
-        self.points = {}
+        self.frames          = {}
+        self.points          = {}
 
-        self.size = size # sort of scaling factor. Adjust this depending on the scale of your coordinates
+        self.size            = size # sort of scaling factor. Adjust this depending on the scale of your coordinates
 
-        self.camera = Camera((3, -3, 3), (0, 0, 0))
+        self.camera          = Camera((3, -3, 3), (0, 0, 0))
 
-        self.prev_t = time.time()
-        self.dt = 0
+        self.prev_t          = time.time()
+        self.dt              = 0
 
     def start(self):
-        self.t = threading.Thread(target=self.initGL, name="FramesViewer_thread")
+        self.t        = threading.Thread(target=self.initGL, name="FramesViewer_thread")
         self.t.daemon = True
+        
         self.t.start()
 
     # Frames must be a pose matrix, a numpy array of shape (4, 4)
@@ -125,7 +127,6 @@ class FramesViewer():
     def display(self):
 
         self.dt = time.time() - self.prev_t
-
         self.prev_t = time.time()
 
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
@@ -140,7 +141,6 @@ class FramesViewer():
         except RuntimeError as e:
             # print("RuntimeError :", e)
             pass
-
         try:
             for name, points in self.points.items():
                 for point, color, size in points:
@@ -159,8 +159,6 @@ class FramesViewer():
 
         self.mouse_rel = np.array([0, 0])
 
-
-
         glutSwapBuffers()
         glutPostRedisplay()    
 
@@ -178,7 +176,6 @@ class FramesViewer():
         glVertex3f(pos[0]*self.camera.zoom, pos[1]*self.camera.zoom, pos[2]*self.camera.zoom)
         glEnd()
 
-
         glEnable(GL_LIGHTING)
         glPopMatrix()
 
@@ -190,12 +187,12 @@ class FramesViewer():
 
         size = self.size*self.camera.zoom
 
-        tvec = pose[:3, 3]*self.camera.zoom
+        trans = pose[:3, 3]*self.camera.zoom
         rot_mat = pose[:3, :3]
 
-        x_end_vec = rot_mat @ [size, 0, 0] + tvec
-        y_end_vec = rot_mat @ [0, size, 0] + tvec
-        z_end_vec = rot_mat @ [0, 0, size] + tvec
+        x_end_vec = rot_mat @ [size, 0, 0] + trans
+        y_end_vec = rot_mat @ [0, size, 0] + trans
+        z_end_vec = rot_mat @ [0, 0, size] + trans
 
         glDisable(GL_LIGHTING)    
         glLineWidth(thickness)
@@ -203,27 +200,27 @@ class FramesViewer():
         # X
         glColor3f(1, 0, 0)
         glBegin(GL_LINES)
-        glVertex3f(tvec[0], tvec[1], tvec[2])
+        glVertex3f(trans[0], trans[1], trans[2])
         glVertex3f(x_end_vec[0], x_end_vec[1], x_end_vec[2])
         glEnd()
 
         # Y
         glColor3f(0, 1, 0)
         glBegin(GL_LINES)
-        glVertex3f(tvec[0], tvec[1], tvec[2])
+        glVertex3f(trans[0], trans[1], trans[2])
         glVertex3f(y_end_vec[0], y_end_vec[1], y_end_vec[2])
         glEnd()
 
         # Z
         glColor3f(0, 0, 1)
         glBegin(GL_LINES)
-        glVertex3f(tvec[0], tvec[1], tvec[2])
+        glVertex3f(trans[0], trans[1], trans[2])
         glVertex3f(z_end_vec[0], z_end_vec[1], z_end_vec[2])
         glEnd()
 
         if color is not None:
             glColor3f(color[0], color[1], color[2])
-            glTranslatef(tvec[0], tvec[1], tvec[2])
+            glTranslatef(trans[0], trans[1], trans[2])
             gluSphere(gluNewQuadric(), size/10, 10, 10)
 
         glEnable(GL_LIGHTING)
@@ -279,13 +276,13 @@ class FramesViewer():
 
         pose = utils.make_pose([0, 0, 0], [0, 0, 0])
 
-        tvec = pose[:3, 3]*self.camera.zoom
+        trans = pose[:3, 3]*self.camera.zoom
         rot_mat = pose[:3, :3]
 
 
-        x_end_vec = rot_mat @ [length*size, 0, 0] + tvec
-        y_end_vec = rot_mat @ [0, length*size, 0] + tvec
-        z_end_vec = rot_mat @ [0, 0, length*size] + tvec
+        x_end_vec = rot_mat @ [length*size, 0, 0] + trans
+        y_end_vec = rot_mat @ [0, length*size, 0] + trans
+        z_end_vec = rot_mat @ [0, 0, length*size] + trans
 
         glDisable(GL_LIGHTING)    
         glLineWidth(3)
@@ -294,10 +291,10 @@ class FramesViewer():
         glColor4f(0, 0, 0, alpha)
         for i in range(length+1):
             glBegin(GL_LINES)
-            glVertex3f(tvec[0], tvec[1]+i*size, tvec[2])
+            glVertex3f(trans[0], trans[1]+i*size, trans[2])
             glVertex3f(x_end_vec[0], x_end_vec[1]+i*size, x_end_vec[2])
 
-            glVertex3f(tvec[0]+i*size, tvec[1], tvec[2])
+            glVertex3f(trans[0]+i*size, trans[1], trans[2])
             glVertex3f(y_end_vec[0]+i*size, y_end_vec[1], y_end_vec[2])
             glEnd()
 
@@ -306,10 +303,10 @@ class FramesViewer():
         glColor4f(0, 0, 0, alpha)
         for i in range(length+1):
             glBegin(GL_LINES)
-            glVertex3f(tvec[0], tvec[1], tvec[2]+i*size)
+            glVertex3f(trans[0], trans[1], trans[2]+i*size)
             glVertex3f(y_end_vec[0], y_end_vec[1], y_end_vec[2]+i*size)
 
-            glVertex3f(tvec[0], tvec[1]+i*size, tvec[2])
+            glVertex3f(trans[0], trans[1]+i*size, trans[2])
             glVertex3f(z_end_vec[0], z_end_vec[1]+i*size, z_end_vec[2])
             glEnd()
 
@@ -317,9 +314,9 @@ class FramesViewer():
         glColor4f(0, 0, 0, alpha)
         for i in range(length+1):
             glBegin(GL_LINES)
-            glVertex3f(tvec[0]+i*size, tvec[1], tvec[2])
+            glVertex3f(trans[0]+i*size, trans[1], trans[2])
             glVertex3f(z_end_vec[0]+i*size, z_end_vec[1], z_end_vec[2])
-            glVertex3f(tvec[0], tvec[1], tvec[2]+i*size)
+            glVertex3f(trans[0], trans[1], trans[2]+i*size)
             glVertex3f(x_end_vec[0], x_end_vec[1], x_end_vec[2]+i*size)
             glEnd()
 
