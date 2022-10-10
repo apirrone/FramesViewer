@@ -402,6 +402,9 @@ class utils():
     A static class containing useful functions to manipulate 6D pose matrices
     """
 
+    __axesIndices = {"x" : 0, "y" : 1, "z" : 2}
+
+
     @staticmethod
     def make_pose(translation:np.ndarray, xyz:np.ndarray, degrees:bool=True):
         """
@@ -482,6 +485,32 @@ class utils():
         translate = utils.make_pose(translation, [0, 0, 0])
 
         return translate @ frame
+
+
+    # TODO check that
+    @staticmethod
+    def swapAxes(_frame:np.ndarray, ax1_str:str, ax2_str:str):
+        assert ax1_str in ["x", "y", "z"]
+        assert ax2_str in ["x", "y", "z"]
+        assert ax1_str != ax2_str
+        axesIndices = {"x" : 0, "y" : 1, "z" : 2}
+
+        frame = _frame.copy()
+        
+        tmp = frame[:3, axesIndices[ax2_str]].copy()
+        frame[:3, axesIndices[ax2_str]] = frame[:3, axesIndices[ax1_str]]
+        frame[:3, axesIndices[ax1_str]] = tmp
+
+        trans = frame[:3, 3].copy()
+
+        frame[:3, 3][axesIndices[ax2_str]] = trans[axesIndices[ax1_str]]
+        frame[:3, 3][axesIndices[ax1_str]] = trans[axesIndices[ax2_str]]
+        
+        return frame
+
+
+
+
 
 
 from camera import Camera

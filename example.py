@@ -16,7 +16,6 @@ fv.pushFrame(frame2, "frame2", [0, 1, 0])
 fv.pushFrame(frame3, "frame3")
 fv.deleteFrame("frame3")
 
-
 # Points
 for i in range(10):
     for j in range(10):
