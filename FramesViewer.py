@@ -11,7 +11,7 @@ import threading
 
 # TODO display the frames names in the viewer
 # TODO make proper package (avoid defining utils here, should be in a separate file)
-
+# TODO history size for points lists (need to be managed differently)
 class FramesViewer():
     
     def __init__(self, window_size:list = [1000, 1000], name:str = b"FramesViewer", size:int = 0.1):
@@ -45,6 +45,9 @@ class FramesViewer():
 
         self.__prev_t          = time.time()
         self.__dt              = 0
+
+        self.__dts             = []
+        self.__fps             = 0
 
     # ==============================================================================
     # Public methods
@@ -171,6 +174,17 @@ class FramesViewer():
         self.__dt = time.time() - self.__prev_t
         self.__prev_t = time.time()
 
+        self.__dts.append(self.__dt)
+
+        elapsed = np.sum(self.__dts)
+        if elapsed >= 1.: # one second worth of dts
+            self.__dts = self.__dts[1:]
+
+        if elapsed != 0:
+            self.__fps = len(self.__dts) / elapsed
+
+        # print(self.__fps)
+
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
         # self.handleResize()
@@ -183,14 +197,9 @@ class FramesViewer():
         except RuntimeError as e:
             # print("RuntimeError :", e)
             pass
-
-        try:
-            for name, points in self.__points.items():
-                for point, color, size in points:
-                    self.__displayPoint(point, color, size)
-        except RuntimeError as e:
-            print("RuntimeError :", e)
-            pass
+        
+        for name in self.__points.keys():
+            self.__displayPoints(name)
     
         self.__camera.update(self.__dt)
 
@@ -205,6 +214,29 @@ class FramesViewer():
         glutSwapBuffers()
         glutPostRedisplay()    
 
+
+    def __displayPoints(self, name):
+        
+        _, color, size = self.__points[name][0]
+
+        glPushMatrix()
+        glDisable(GL_LIGHTING)    
+
+        glColor3f(color[0], color[1], color[2])
+        glPointSize(size)
+        glBegin(GL_POINTS)
+
+        try:
+            for point, _, _ in self.__points[name]:
+                glVertex3f(point[0]*self.__camera.getZoom(), point[1]*self.__camera.getZoom(), point[2]*self.__camera.getZoom())
+        except RuntimeError as e:
+            print("RuntimeError :", e)
+            pass
+
+        glEnd()
+
+        glEnable(GL_LIGHTING)
+        glPopMatrix()
 
     def __displayPoint(self, _pos, color=(0, 0, 0), size=1):
         pos = _pos.copy()
