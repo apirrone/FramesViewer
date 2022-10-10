@@ -2,7 +2,7 @@
 
 A simple live 6D frames viewer
 
-![FramesViewer](assets/FramesViewer.png)
+https://user-images.githubusercontent.com/6552564/194662755-2a6c181c-e662-4104-a71d-10e85bad3a87.mp4
 
 ## Installation
 ```python
