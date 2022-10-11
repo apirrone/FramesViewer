@@ -1,6 +1,7 @@
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 from OpenGL.GL import *
+from OpenGL.arrays import ArrayDatatype as ADT
 import sys
 import numpy as np
 from scipy.spatial.transform import Rotation as R
@@ -29,15 +30,15 @@ class FramesViewer():
         self.__prev_mouse_pos  = np.array([0, 0])
         self.__mouse_l_pressed = False
         self.__mouse_m_pressed = False
+        self.__mouse_r_pressed = False
         self.__ctrl_pressed    = False
         self.__mouse_rel       = np.array([0, 0])
 
         self.__t               = None
 
-        self.__startTime       = time.time()
-
         self.__frames          = {}
         self.__points          = {}
+        self.__meshes          = {}
 
         self.__size            = size
 
@@ -118,6 +119,27 @@ class FramesViewer():
         if size is not None:
             self.__points[name]["size"] = size
 
+    def translatePointsList(self, name:str, translation:list):
+
+        if name not in self.__points:
+            print("Error : points list", name, "does not exist")
+            return
+
+        for i, point in enumerate(self.__points[name]["points"]):
+            self.__points[name]["points"][i] += translation
+
+
+    def rotatePointsList(self, name:str, rotation:list, center:list=[0, 0, 0], degrees:bool=True):
+
+        if name not in self.__points:
+            print("Error : points list", name, "does not exist")
+            return
+
+        for i, point in enumerate(self.__points[name]["points"]):
+            rot_mat = R.from_euler('xyz', rotation, degrees=degrees).as_matrix()
+
+            self.__points[name]["points"][i] = rot_mat @ point
+
     def deletePointsList(self, name:str):
         """
         Deletes the points list of name \"name\".
@@ -126,6 +148,27 @@ class FramesViewer():
         """
         if name in self.__points:
             del self.__points[name]
+
+    def getPointsList(self, name:str):
+        if name not in self.__points:
+            print("Error : points list", name, "does not exist")
+            return
+
+        return self.__points[name]["points"].copy()
+
+    def createMesh(self, name:str, verts:list=[]):
+        if name not in self.__meshes:
+            self.__meshes[name] = verts
+        else:
+            print("Error : mesh", name, "already exists. Use updateMesh() instead")
+
+    def updateMesh(self, name:str, verts:list):
+        if name not in self.__meshes:
+            print("Error : mesh", name, "does not exist")
+            return
+
+        self.__meshes[name] = verts
+        
 
     # ==============================================================================
     # Private methods
@@ -200,7 +243,7 @@ class FramesViewer():
         if elapsed != 0:
             self.__fps = len(self.__dts) / elapsed
 
-        print(self.__fps)
+        # print(self.__fps)
 
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
@@ -216,15 +259,20 @@ class FramesViewer():
             pass
 
         try:
-        
             for name in self.__points.keys():
                 self.__displayPoints(name)
         except RuntimeError as e:
             pass
+
+        for name in self.__meshes.keys():
+            self.__displayMesh(name)
         
         self.__camera.update(self.__dt)
 
-        if self.__mouse_l_pressed:
+        if self.__mouse_m_pressed:
+            self.__camera.move(self.__mouse_rel)
+
+        if self.__mouse_r_pressed:
             if self.__ctrl_pressed:
                 self.__camera.move(self.__mouse_rel)
             else:
@@ -321,6 +369,31 @@ class FramesViewer():
         glEnable(GL_LIGHTING)
         glPopMatrix()
 
+    # TODO not working yet
+    def __displayMesh(self, name:str):
+        if name not in self.__meshes:
+            print("Error : mesh", name," does not exist.")
+            return
+
+        verts = self.__meshes[name]
+
+        glPushMatrix()
+        glDisable(GL_LIGHTING)    
+        glLineWidth(1)
+        glColor3f(0, 0, 0)
+
+
+        glBegin(GL_QUADS)
+    
+        for vert in verts:
+            glVertex3f(vert[0]*self.__camera.getZoom(), vert[1]*self.__camera.getZoom(), vert[2]*self.__camera.getZoom())
+        glEnd()
+
+
+        glEnable(GL_LIGHTING)
+        glPopMatrix()
+
+
     def __mouseClick(self, button, mode, x, y):
         if mode == 0:
             self.__prev_mouse_pos = np.array([x, y])
@@ -333,12 +406,18 @@ class FramesViewer():
             elif mode == 1:
                 self.__mouse_l_pressed = False
 
-        if button == 3 : 
-            self.__camera.applyZoom(10)
-        elif button == 4:
-            self.__camera.applyZoom(-10)
-
         if button == 2:
+            if mode == 0:
+                self.__mouse_r_pressed = True
+            elif mode == 1:
+                self.__mouse_r_pressed = False
+
+        if button == 3 : 
+            self.__camera.applyZoom(-10)
+        elif button == 4:
+            self.__camera.applyZoom(10)
+
+        if button == 1:
             if mode == 0:
                 self.__mouse_m_pressed = True
             elif mode == 1:
@@ -529,6 +608,44 @@ class utils():
         
         return frame
 
+class VertexBuffer(object):
+
+  def __init__(self, data, usage):
+    self.buffer = GLuint(0)
+    glGenBuffers(1, self.buffer)
+    self.buffer = self.buffer.value
+    glBindBuffer(GL_ARRAY_BUFFER, self.buffer)
+    glBufferData(GL_ARRAY_BUFFER, ADT.arrayByteCount(data), ADT.voidDataPointer(data), usage)
+
+  def __del__(self):
+    glDeleteBuffers(1, GLuint(self.buffer))
+
+  def bind(self):
+    glBindBuffer(GL_ARRAY_BUFFER, self.buffer)
+
+  def bind_colors(self, size, type, stride=0):
+    self.bind()
+    glColorPointer(size, type, stride, None)
+
+  def bind_edgeflags(self, stride=0):
+    self.bind()
+    glEdgeFlagPointer(stride, None)
+
+  def bind_indexes(self, type, stride=0):
+    self.bind()
+    glIndexPointer(type, stride, None)
+
+  def bind_normals(self, type, stride=0):
+    self.bind()
+    glNormalPointer(type, stride, None)
+
+  def bind_texcoords(self, size, type, stride=0):
+    self.bind()
+    glTexCoordPointer(size, type, stride, None)
+
+  def bind_vertexes(self, size, type, stride=0):
+    self.bind()
+    glVertexPointer(size, type, stride, None)
 
 
 

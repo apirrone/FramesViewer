@@ -18,6 +18,9 @@ fv.deleteFrame("frame3")
 
 fv.createPointsList("a", size=10, color=(1, 0, 0))
 
+# verts = [[0, 0, 0], [1, 0, 0], [1, 1, 0]]
+# fv.createMesh("test", verts=verts)
+
 # Points
 for i in range(10):
     for j in range(10):
