@@ -84,22 +84,39 @@ class FramesViewer():
             del self.__frames[name]
 
     # Point is a (x, y, z) position in space
-    def pushPoint(self, point:list, name:str, color:tuple=(0, 0, 0), size:int=1):
+    def pushPoint(self, name:str, point:list):
         """
         Adds or updates a points list.
         If the points list name does not exist yet, it is created.
         If the points list name exists, the point is added to the list.
         Arguments:
-            point     : a point's coordinates [x, y, z]
             name      : the name of the points list
-            color     : a list of size 3 (RGB between 0 and 1)
-            size      : the size of the point
+            point     : a point's coordinates [x, y, z]
         """
+
         if name not in self.__points:
-            self.__points[name] = []
+            print("Error : points list", name, "does not exist")
 
-        self.__points[name].append((point.copy(), color, size))
+        self.__points[name]["points"].append(point.copy())
 
+    def createPointsList(self, name:str, points:list=[], color:tuple=(0, 0, 0), size:int=1):
+        if name in self.__points:
+            print("Error : points list", name, "already exists")
+            return
+
+        self.__points[name] = {"points" : points, "color" : color, "size" : size}
+
+    def updatePointsList(self, name:str, points:list, color:tuple=None, size:int=None):
+        if name not in self.__points:
+            print("Error : points list", name, "does not exist")
+            return
+
+        self.__points[name]["points"] = points
+
+        if color is not None:
+            self.__points[name]["color"] = color
+        if size is not None:
+            self.__points[name]["size"] = size
 
     def deletePointsList(self, name:str):
         """
@@ -183,7 +200,7 @@ class FramesViewer():
         if elapsed != 0:
             self.__fps = len(self.__dts) / elapsed
 
-        # print(self.__fps)
+        print(self.__fps)
 
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
@@ -197,10 +214,14 @@ class FramesViewer():
         except RuntimeError as e:
             # print("RuntimeError :", e)
             pass
+
+        try:
         
-        for name in self.__points.keys():
-            self.__displayPoints(name)
-    
+            for name in self.__points.keys():
+                self.__displayPoints(name)
+        except RuntimeError as e:
+            pass
+        
         self.__camera.update(self.__dt)
 
         if self.__mouse_l_pressed:
@@ -216,8 +237,8 @@ class FramesViewer():
 
 
     def __displayPoints(self, name):
-        
-        _, color, size = self.__points[name][0]
+        color = self.__points[name]["color"]
+        size  = self.__points[name]["size"]
 
         glPushMatrix()
         glDisable(GL_LIGHTING)    
@@ -227,7 +248,7 @@ class FramesViewer():
         glBegin(GL_POINTS)
 
         try:
-            for point, _, _ in self.__points[name]:
+            for point in self.__points[name]["points"]:   
                 glVertex3f(point[0]*self.__camera.getZoom(), point[1]*self.__camera.getZoom(), point[2]*self.__camera.getZoom())
         except RuntimeError as e:
             print("RuntimeError :", e)

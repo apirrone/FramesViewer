@@ -16,11 +16,13 @@ fv.pushFrame(frame2, "frame2", [0, 1, 0])
 fv.pushFrame(frame3, "frame3")
 fv.deleteFrame("frame3")
 
+fv.createPointsList("a", size=10, color=(1, 0, 0))
+
 # Points
 for i in range(10):
     for j in range(10):
         for z in range(10):
-            fv.pushPoint([i*0.1, j*0.1, z*0.1], "a", (1, 0, 0), 10)
+            fv.pushPoint("a", [i*0.1, j*0.1, z*0.1])
 
 # An infinite loop is needed to keep the viewer thread alive.
 while True:
