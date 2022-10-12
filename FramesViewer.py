@@ -34,10 +34,13 @@ class FramesViewer():
         self.__ctrl_pressed    = False
         self.__mouse_rel       = np.array([0, 0])
 
+        self.__key_pressed     = None
+
         self.__t               = None
 
         self.__frames          = {}
         self.__points          = {}
+        self.__points_visible  = {}
         self.__meshes          = {}
 
         self.__size            = size
@@ -49,6 +52,9 @@ class FramesViewer():
 
         self.__dts             = []
         self.__fps             = 0
+
+    def __reset_camera(self):
+        self.__camera          = Camera((3, -3, 3), (0, 0, 0))
 
     # ==============================================================================
     # Public methods
@@ -100,17 +106,24 @@ class FramesViewer():
 
         self.__points[name]["points"].append(point.copy())
 
-    def createPointsList(self, name:str, points:list=[], color:tuple=(0, 0, 0), size:int=1):
+    def createPointsList(self, name:str, points:list=[], color:tuple=(0, 0, 0), size:int=1, visible:bool=True):
         if name in self.__points:
             print("Error : points list", name, "already exists")
             return
 
-        self.__points[name] = {"points" : points, "color" : color, "size" : size}
+        self.__points[name] = {"points" : points.copy(), "color" : color, "size" : size}
+        self.__points_visible[name] = visible
 
-    def updatePointsList(self, name:str, points:list, color:tuple=None, size:int=None):
+    def updatePointsList(self, name:str, points:list, color:tuple=None, size:int=None, rotation:list=None, translation:list=None):
+
         if name not in self.__points:
             print("Error : points list", name, "does not exist")
             return
+
+        if rotation is not None:
+            points = self.__rotatePoints(points, rotation)
+        if translation is not None:
+            points = self.__translatePoints(points, translation)
 
         self.__points[name]["points"] = points
 
@@ -128,6 +141,28 @@ class FramesViewer():
         for i, point in enumerate(self.__points[name]["points"]):
             self.__points[name]["points"][i] += translation
 
+    def changePointsListVisibility(self, name:str, visible:bool):
+        if name not in self.__points:
+            print("Error : points list", name, "does not exist")
+            return
+
+        self.__points_visible[name] = visible
+
+    def __rotatePoints(self, points:list, rotation:list, center:list=[0, 0, 0], degrees:bool=True):
+        pp = []
+        rot_mat = R.from_euler('xyz', rotation, degrees=degrees).as_matrix()
+        for point in points:
+            pp.append(rot_mat @ point)
+
+        return pp
+
+    def __translatePoints(self, points:list, translation):
+        pp = []
+        for point in points:
+            pp.append(point + translation)
+
+        return pp
+
 
     def rotatePointsList(self, name:str, rotation:list, center:list=[0, 0, 0], degrees:bool=True):
 
@@ -135,9 +170,8 @@ class FramesViewer():
             print("Error : points list", name, "does not exist")
             return
 
+        rot_mat = R.from_euler('xyz', rotation, degrees=degrees).as_matrix()
         for i, point in enumerate(self.__points[name]["points"]):
-            rot_mat = R.from_euler('xyz', rotation, degrees=degrees).as_matrix()
-
             self.__points[name]["points"][i] = rot_mat @ point
 
     def deletePointsList(self, name:str):
@@ -168,6 +202,12 @@ class FramesViewer():
             return
 
         self.__meshes[name] = verts
+
+    
+    def get_key_pressed(self):
+        key = self.__key_pressed
+        self.__key_pressed = None
+        return key
         
 
     # ==============================================================================
@@ -260,7 +300,8 @@ class FramesViewer():
 
         try:
             for name in self.__points.keys():
-                self.__displayPoints(name)
+                if self.__points_visible[name]:
+                    self.__displayPoints(name)
         except RuntimeError as e:
             pass
 
@@ -297,7 +338,7 @@ class FramesViewer():
 
         try:
             for point in self.__points[name]["points"]:   
-                glVertex3f(point[0]*self.__camera.getZoom(), point[1]*self.__camera.getZoom(), point[2]*self.__camera.getZoom())
+                glVertex3f(point[0]*self.__camera.getScale(), point[1]*self.__camera.getScale(), point[2]*self.__camera.getScale())
         except RuntimeError as e:
             print("RuntimeError :", e)
             pass
@@ -317,7 +358,7 @@ class FramesViewer():
         glPointSize(size)
         glBegin(GL_POINTS)
 
-        glVertex3f(pos[0]*self.__camera.getZoom(), pos[1]*self.__camera.getZoom(), pos[2]*self.__camera.getZoom())
+        glVertex3f(pos[0]*self.__camera.getScale(), pos[1]*self.__camera.getScale(), pos[2]*self.__camera.getScale())
         glEnd()
 
         glEnable(GL_LIGHTING)
@@ -328,9 +369,9 @@ class FramesViewer():
 
         glPushMatrix()
 
-        size = self.__size*self.__camera.getZoom()
+        size = self.__size*self.__camera.getScale()
 
-        trans = pose[:3, 3]*self.__camera.getZoom()
+        trans = pose[:3, 3]*self.__camera.getScale()
         rot_mat = pose[:3, :3]
 
         x_end_vec = rot_mat @ [size, 0, 0] + trans
@@ -386,7 +427,7 @@ class FramesViewer():
         glBegin(GL_QUADS)
     
         for vert in verts:
-            glVertex3f(vert[0]*self.__camera.getZoom(), vert[1]*self.__camera.getZoom(), vert[2]*self.__camera.getZoom())
+            glVertex3f(vert[0]*self.__camera.getScale(), vert[1]*self.__camera.getScale(), vert[2]*self.__camera.getScale())
         glEnd()
 
 
@@ -435,7 +476,9 @@ class FramesViewer():
         self.__prev_mouse_pos = mouse_pos.copy()
 
     def __keyboard(self, key, x, y):
-        pass
+        self.__key_pressed = key
+        if key == b'c':
+            self.__reset_camera()
 
     def __displayWorld(self):
 
@@ -443,13 +486,13 @@ class FramesViewer():
 
         glPushMatrix()
 
-        size = self.__size*self.__camera.getZoom()
+        size = self.__size*self.__camera.getScale()
         length = 15
         alpha = 0.04
 
         pose = utils.make_pose([0, 0, 0], [0, 0, 0])
 
-        trans = pose[:3, 3]*self.__camera.getZoom()
+        trans = pose[:3, 3]*self.__camera.getScale()
         rot_mat = pose[:3, :3]
 
 

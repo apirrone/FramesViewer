@@ -7,15 +7,16 @@ from FramesViewer import utils
 import time 
 
 class Camera():
-    def __init__(self, pos, center, up=[0, 0, 1], zoom=5):
+    def __init__(self, pos, center, up=[0, 0, 1], scale=5):
         self.__pos    = pos
         self.__center = center
         self.__up     = up
-        self.__zoom   = zoom
 
         self.__pose   = None
 
         self.__dt     = 0
+
+        self.__scale  = 5
 
         self.update(0)
 
@@ -32,10 +33,14 @@ class Camera():
         self.__updatePose()
 
     def applyZoom(self, incr_value):
-        self.__zoom = max(0, self.__zoom - incr_value*self.__dt)
+        pos = np.array(self.__pos)
+        center = np.array(self.__center)
+        dir = (pos - center) / np.linalg.norm(pos-center) # normalized
 
-    def getZoom(self):
-        return self.__zoom
+        self.__pos += dir*incr_value*self.__dt
+
+    def getScale(self):
+        return self.__scale
 
     # ==============================================================================
     # Private methods
@@ -54,7 +59,6 @@ class Camera():
         trans_diff = self.__pose[:3, 3] - old_pose[:3, 3]
 
         return trans_diff
-
 
     def move(self, mouse_rel):
         trans_diff = self.__getTransDiff(mouse_rel)
