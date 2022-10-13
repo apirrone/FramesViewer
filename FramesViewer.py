@@ -8,6 +8,7 @@ import time
 import threading
 import utils
 from camera import Camera
+from inputs import Inputs
 
 # TODO display the frames names in the viewer
 # TODO display fps in viewer
@@ -26,15 +27,6 @@ class FramesViewer():
         self.__window_size     = window_size
         self.__name            = name
 
-        self.__prev_mouse_pos  = np.array([0, 0])
-        self.__mouse_l_pressed = False
-        self.__mouse_m_pressed = False
-        self.__mouse_r_pressed = False
-        self.__ctrl_pressed    = False
-        self.__mouse_rel       = np.array([0, 0])
-
-        self.__key_pressed     = None
-
         self.__t               = None
 
         self.__frames          = {}
@@ -45,7 +37,7 @@ class FramesViewer():
         self.__size            = size
 
         self.__camera          = Camera((3, -3, 3), (0, 0, 0))
-
+        self.__inputs          = Inputs()
         self.__prev_t          = time.time()
         self.__dt              = 0
 
@@ -204,9 +196,7 @@ class FramesViewer():
 
     
     def get_key_pressed(self):
-        key = self.__key_pressed
-        self.__key_pressed = None
-        return key
+        return self.__inputs.getKeyPressed()
         
 
     # ==============================================================================
@@ -236,7 +226,7 @@ class FramesViewer():
         
         glEnable(GL_LIGHT0)
         
-        glutDisplayFunc(self.__display)
+        glutDisplayFunc(self.__run)
         
         glMatrixMode(GL_PROJECTION)
 
@@ -246,16 +236,16 @@ class FramesViewer():
         
         glPushMatrix()
         
-        glutMouseFunc(self.__mouseClick)
-        glutMotionFunc(self.__mouseMotion)
-        glutKeyboardFunc(self.__keyboard)
+        glutMouseFunc(self.__inputs.mouseClick)
+        glutMotionFunc(self.__inputs.mouseMotion)
+        glutKeyboardFunc(self.__inputs.keyboard)
 
         glutMainLoop()
 
         glutSwapBuffers()
         glutPostRedisplay()
 
-    def __display(self):
+    def __run(self):
 
         self.__dt = time.time() - self.__prev_t
         self.__prev_t = time.time()
@@ -268,8 +258,41 @@ class FramesViewer():
 
         if elapsed != 0:
             self.__fps = len(self.__dts) / elapsed
+        
+        self.__handleInputs()
+        self.__camera.update(self.__dt)
 
-        # print(self.__fps)
+        self.__display()
+
+    def __handleInputs(self):
+
+        if self.__inputs.mouseMPressed():
+            self.__camera.move(self.__inputs.getMouseRel())
+
+        if self.__inputs.mouseRPressed():
+            if self.__inputs.ctrlPressed():
+                self.__camera.move(self.__inputs.getMouseRel())
+            else:
+                self.__camera.rotate(self.__inputs.getMouseRel())
+
+        if self.__inputs.wheelUp():
+            self.__camera.applyZoom(-15)
+
+        if self.__inputs.wheelDown():
+            self.__camera.applyZoom(15)
+            
+
+        # TODO how to be able to check keys pressed inside FramesViewer AND outside ? 
+        # self.__inputs.getKeyPressed()
+        # if self.__inputs.getKeyPressed() == b'c':
+            # self.__reset_camera()
+
+        self.__inputs.setMouseRel(np.array([0, 0]))
+
+
+    def __display(self):
+
+        print(self.__fps)
 
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
@@ -291,19 +314,6 @@ class FramesViewer():
 
         for name in self.__meshes.keys():
             self.__displayMesh(name)
-        
-        self.__camera.update(self.__dt)
-
-        if self.__mouse_m_pressed:
-            self.__camera.move(self.__mouse_rel)
-
-        if self.__mouse_r_pressed:
-            if self.__ctrl_pressed:
-                self.__camera.move(self.__mouse_rel)
-            else:
-                self.__camera.rotate(self.__mouse_rel)
-
-        self.__mouse_rel = np.array([0, 0])
 
         glutSwapBuffers()
         glutPostRedisplay()    
@@ -414,52 +424,6 @@ class FramesViewer():
 
         glEnable(GL_LIGHTING)
         glPopMatrix()
-
-
-    def __mouseClick(self, button, mode, x, y):
-        if mode == 0:
-            self.__prev_mouse_pos = np.array([x, y])
-        else:
-            self.__prev_mouse_pos = np.array([0, 0])
-
-        if button == 0:
-            if mode == 0:
-                self.__mouse_l_pressed = True
-            elif mode == 1:
-                self.__mouse_l_pressed = False
-
-        if button == 2:
-            if mode == 0:
-                self.__mouse_r_pressed = True
-            elif mode == 1:
-                self.__mouse_r_pressed = False
-
-        if button == 3 : 
-            self.__camera.applyZoom(-10)
-        elif button == 4:
-            self.__camera.applyZoom(10)
-
-        if button == 1:
-            if mode == 0:
-                self.__mouse_m_pressed = True
-            elif mode == 1:
-                self.__mouse_m_pressed = False
-
-        if glutGetModifiers() == 2:
-            self.__ctrl_pressed = True
-        else:    
-            self.__ctrl_pressed = False
-
-    def __mouseMotion(self, x, y):
-        mouse_pos = np.array([x, y])
-        self.__mouse_rel = mouse_pos - self.__prev_mouse_pos
-
-        self.__prev_mouse_pos = mouse_pos.copy()
-
-    def __keyboard(self, key, x, y):
-        self.__key_pressed = key
-        if key == b'c':
-            self.__reset_camera()
 
     def __displayWorld(self):
 
