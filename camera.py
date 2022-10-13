@@ -16,7 +16,7 @@ class Camera():
 
         self.__dt     = 0
 
-        self.__scale  = 5
+        self.__scale  = scale
 
         self.update(0)
 

@@ -1,18 +1,17 @@
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 from OpenGL.GL import *
-from OpenGL.arrays import ArrayDatatype as ADT
 import sys
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 import time
 import threading
+import utils
+from camera import Camera
 
-# Warning : Had to import Camera class at the end of the file (after defining utils)
+# TODO display the frames names in the viewer
+# TODO display fps in viewer
 
-# TODO display the frames names in the viewer
-# TODO make proper package (avoid defining utils here, should be in a separate file)
-# TODO history size for points lists (need to be managed differently)
 class FramesViewer():
     
     def __init__(self, window_size:list = [1000, 1000], name:str = b"FramesViewer", size:int = 0.1):
@@ -256,19 +255,6 @@ class FramesViewer():
         glutSwapBuffers()
         glutPostRedisplay()
 
-    # TODO not working yet
-    def __handleResize(self):
-        tmp = glGetIntegerv(GL_VIEWPORT)
-        current_window_size = (tmp[2], tmp[3])
-        if current_window_size != self.window_size:
-            self.window_size = current_window_size
-
-            # glutReshapeWindow(self.window_size[0], self.window_size[1])
-            
-            # glViewport(tmp[0], tmp[1], tmp[2], tmp[3])
-            # glutPostRedisplay()
-            # print("coucou")
-
     def __display(self):
 
         self.__dt = time.time() - self.__prev_t
@@ -286,8 +272,6 @@ class FramesViewer():
         # print(self.__fps)
 
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
-
-        # self.handleResize()
 
         self.__displayWorld()
         
@@ -380,26 +364,23 @@ class FramesViewer():
 
         glDisable(GL_LIGHTING)    
         glLineWidth(thickness)
+        glBegin(GL_LINES)
 
         # X
         glColor3f(1, 0, 0)
-        glBegin(GL_LINES)
         glVertex3f(trans[0], trans[1], trans[2])
         glVertex3f(x_end_vec[0], x_end_vec[1], x_end_vec[2])
-        glEnd()
 
         # Y
         glColor3f(0, 1, 0)
-        glBegin(GL_LINES)
         glVertex3f(trans[0], trans[1], trans[2])
         glVertex3f(y_end_vec[0], y_end_vec[1], y_end_vec[2])
-        glEnd()
 
         # Z
         glColor3f(0, 0, 1)
-        glBegin(GL_LINES)
         glVertex3f(trans[0], trans[1], trans[2])
         glVertex3f(z_end_vec[0], z_end_vec[1], z_end_vec[2])
+        
         glEnd()
 
         if color is not None:
@@ -538,160 +519,3 @@ class FramesViewer():
 
         glEnable(GL_LIGHTING)
         glPopMatrix()
-
-
-class utils():
-    """
-    A static class containing useful functions to manipulate 6D pose matrices
-    """
-
-    __axesIndices = {"x" : 0, "y" : 1, "z" : 2}
-
-
-    @staticmethod
-    def make_pose(translation:np.ndarray, xyz:np.ndarray, degrees:bool=True):
-        """
-        Creates a 6D pose matrix from a position vector (translation) and \"roll pitch yaw\" angles (xyz).
-        Arguments :
-            translation : a list of size 3. This is the translation component of the pose matrix
-            xyz         : a list of size 3. x, y and z are the roll, pitch, yaw angles that are used to build the rotation component of the pose matrix
-            degrees     : True or False. are the angles you provided for \"xyz\" in degrees or in radians ?
-        Returns : 
-            pose : the constructed pose matrix. This is a 4x4 numpy array
-        """
-        pose = np.eye(4)
-        pose[:3, :3] = R.from_euler('xyz', xyz, degrees=degrees).as_matrix()
-        pose[:3, 3] = translation
-        return pose
-
-    @staticmethod
-    def rotateInSelf(_frame, rotation):
-        """
-        TODO
-        """
-        frame            = _frame.copy()
-
-        toOrigin         = np.eye(4)
-        toOrigin[:3, :3] = frame[:3, :3]
-        toOrigin[:3, 3]  = frame[:3, 3]
-        toOrigin         = np.linalg.inv(toOrigin)
-
-        frame = toOrigin @ frame
-        frame = utils.make_pose([0, 0, 0], rotation) @ frame        
-        frame = np.linalg.inv(toOrigin) @ frame
-
-        return frame
-        
-    @staticmethod
-    def rotateAbout(_frame, rotation, center):
-        """
-        TODO
-        """
-        frame            = _frame.copy()
-
-        toOrigin         = np.eye(4)
-        toOrigin[:3, :3] = frame[:3, :3]
-        toOrigin[:3, 3]  = center
-        toOrigin         = np.linalg.inv(toOrigin)
-
-        frame = toOrigin @ frame
-        frame = utils.make_pose([0, 0, 0], rotation) @ frame        
-        frame = np.linalg.inv(toOrigin) @ frame
-
-        return frame
-        
-    @staticmethod
-    def translateInSelf(_frame, translation):
-        """
-        TODO
-        """
-        frame = _frame.copy()
-
-        toOrigin         = np.eye(4)
-        toOrigin[:3, :3] = frame[:3, :3]
-        toOrigin[:3, 3]  = frame[:3, 3]
-        toOrigin         = np.linalg.inv(toOrigin)
-
-        frame = toOrigin @ frame
-        frame = utils.make_pose(translation, [0, 0, 0]) @ frame
-        frame = np.linalg.inv(toOrigin) @ frame
-
-        return frame
-
-    @staticmethod
-    def translateAbsolute(_frame, translation):
-        """
-        TODO
-        """
-        frame = _frame.copy()
-
-        translate = utils.make_pose(translation, [0, 0, 0])
-
-        return translate @ frame
-
-
-    # TODO check that
-    @staticmethod
-    def swapAxes(_frame:np.ndarray, ax1_str:str, ax2_str:str):
-        assert ax1_str in ["x", "y", "z"]
-        assert ax2_str in ["x", "y", "z"]
-        assert ax1_str != ax2_str
-        axesIndices = {"x" : 0, "y" : 1, "z" : 2}
-
-        frame = _frame.copy()
-        
-        tmp = frame[:3, axesIndices[ax2_str]].copy()
-        frame[:3, axesIndices[ax2_str]] = frame[:3, axesIndices[ax1_str]]
-        frame[:3, axesIndices[ax1_str]] = tmp
-
-        trans = frame[:3, 3].copy()
-
-        frame[:3, 3][axesIndices[ax2_str]] = trans[axesIndices[ax1_str]]
-        frame[:3, 3][axesIndices[ax1_str]] = trans[axesIndices[ax2_str]]
-        
-        return frame
-
-class VertexBuffer(object):
-
-  def __init__(self, data, usage):
-    self.buffer = GLuint(0)
-    glGenBuffers(1, self.buffer)
-    self.buffer = self.buffer.value
-    glBindBuffer(GL_ARRAY_BUFFER, self.buffer)
-    glBufferData(GL_ARRAY_BUFFER, ADT.arrayByteCount(data), ADT.voidDataPointer(data), usage)
-
-  def __del__(self):
-    glDeleteBuffers(1, GLuint(self.buffer))
-
-  def bind(self):
-    glBindBuffer(GL_ARRAY_BUFFER, self.buffer)
-
-  def bind_colors(self, size, type, stride=0):
-    self.bind()
-    glColorPointer(size, type, stride, None)
-
-  def bind_edgeflags(self, stride=0):
-    self.bind()
-    glEdgeFlagPointer(stride, None)
-
-  def bind_indexes(self, type, stride=0):
-    self.bind()
-    glIndexPointer(type, stride, None)
-
-  def bind_normals(self, type, stride=0):
-    self.bind()
-    glNormalPointer(type, stride, None)
-
-  def bind_texcoords(self, size, type, stride=0):
-    self.bind()
-    glTexCoordPointer(size, type, stride, None)
-
-  def bind_vertexes(self, size, type, stride=0):
-    self.bind()
-    glVertexPointer(size, type, stride, None)
-
-
-
-
-
-from camera import Camera

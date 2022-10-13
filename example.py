@@ -1,13 +1,13 @@
 from FramesViewer import FramesViewer
-from FramesViewer import utils as fv_utils
+from FramesViewer import utils
 import time
 
 fv = FramesViewer()
 fv.start()
 
 # Frames
-frame1 = fv_utils.make_pose([0.15, 0.15, 0], [45, 0, 0])
-frame2 = fv_utils.make_pose([0.15, 0.15, 0.15], [0, 90, 45])
+frame1 = utils.make_pose([0.15, 0.15, 0], [45, 0, 0])
+frame2 = utils.make_pose([0.15, 0.15, 0.15], [0, 90, 45])
 frame3 = frame2.copy()
 
 fv.pushFrame(frame1, "frame1", [1, 0, 0])
@@ -29,7 +29,7 @@ for i in range(10):
 
 # An infinite loop is needed to keep the viewer thread alive.
 while True:
-    frame2 = fv_utils.translateAbsolute(frame2, [0, 0.0005, 0])
-    frame2 = fv_utils.rotateInSelf(frame2, [0.5, 0.5, 0.5])
+    frame2 = utils.translateAbsolute(frame2, [0, 0.0005, 0])
+    frame2 = utils.rotateInSelf(frame2, [0.5, 0.5, 0.5])
     fv.pushFrame(frame2, "frame2", [0, 1, 0])
     time.sleep(0.01)
