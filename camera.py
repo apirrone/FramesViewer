@@ -43,6 +43,17 @@ class Camera():
     def getScale(self):
         return self.__scale
 
+    def move(self, mouse_rel):
+        trans_diff = self.__getTransDiff(mouse_rel)*self.__speed
+
+        self.__pos    += trans_diff*self.__dt
+        self.__center += trans_diff*self.__dt
+
+    def rotate(self, mouse_rel):
+        trans_diff = self.__getTransDiff(mouse_rel)*self.__speed
+        
+        self.__pos   += trans_diff*self.__dt*2
+
     # ==============================================================================
     # Private methods
 
@@ -60,15 +71,4 @@ class Camera():
         trans_diff = self.__pose[:3, 3] - old_pose[:3, 3]
 
         return trans_diff
-
-    def move(self, mouse_rel):
-        trans_diff = self.__getTransDiff(mouse_rel)*self.__speed
-
-        self.__pos    += trans_diff*self.__dt
-        self.__center += trans_diff*self.__dt
-
-    def rotate(self, mouse_rel):
-        trans_diff = self.__getTransDiff(mouse_rel)*self.__speed
-        
-        self.__pos   += trans_diff*self.__dt*2
 
