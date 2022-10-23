@@ -13,6 +13,8 @@ frame3 = frame2.copy()
 fv.pushFrame(frame1, "frame1", [1, 0, 0])
 fv.pushFrame(frame2, "frame2", [0, 1, 0])
 
+fv.pushLink("frame1", "frame2", color=(1, 0, 0))
+
 fv.pushFrame(frame3, "frame3")
 fv.deleteFrame("frame3")
 

@@ -7,7 +7,7 @@ from FramesViewer import utils
 import time 
 
 class Camera():
-    def __init__(self, pos, center, up=[0, 0, 1], scale=5):
+    def __init__(self, pos, center, up=[0, 0, 1], scale=5, speed=3):
         self.__pos    = pos
         self.__center = center
         self.__up     = up
@@ -17,6 +17,7 @@ class Camera():
         self.__dt     = 0
 
         self.__scale  = scale
+        self.__speed  = speed
 
         self.update(0)
 
@@ -61,13 +62,13 @@ class Camera():
         return trans_diff
 
     def move(self, mouse_rel):
-        trans_diff = self.__getTransDiff(mouse_rel)
+        trans_diff = self.__getTransDiff(mouse_rel)*self.__speed
 
         self.__pos    += trans_diff*self.__dt
         self.__center += trans_diff*self.__dt
 
     def rotate(self, mouse_rel):
-        trans_diff = self.__getTransDiff(mouse_rel)
+        trans_diff = self.__getTransDiff(mouse_rel)*self.__speed
         
         self.__pos   += trans_diff*self.__dt*2
 

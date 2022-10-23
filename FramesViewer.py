@@ -30,8 +30,11 @@ class FramesViewer():
         self.__t               = None
 
         self.__frames          = {}
+        self.__links           = {} 
+
         self.__points          = {}
         self.__points_visible  = {}
+
         self.__meshes          = {}
 
         self.__size            = size
@@ -59,6 +62,8 @@ class FramesViewer():
         
         self.__t.start()
 
+
+    # Frames
     def pushFrame(self, frame:np.ndarray, name:str, color:tuple=None, thickness:int=4):
         """
         Adds or updates a frame.
@@ -76,12 +81,48 @@ class FramesViewer():
         """
         Deletes the frame of name \"name\".
         Arguments:
-            name : The name of the frame to be deleted
+            name : the name of the frame to be deleted
         """
         if name in self.__frames:
             del self.__frames[name]
 
-    # Point is a (x, y, z) position in space
+    def pushLink(self, frame1:str, frame2:str, color:tuple=(0, 0, 0)):
+        """
+        Adds a (visual) link between two frames. The order does not matter.
+        Arguments:
+            frame1 : the name of the first frame
+            frame2 : the name of the second frame
+            color  : the color of the link
+        """
+
+        if not frame1 in self.__frames.keys() and frame2 in self.__frames.keys():
+            print("Error : frames ", frame1, "or", frame2," don't exist")
+            return
+
+        link = tuple(sorted((frame1, frame2)))
+
+        if tuple(sorted((frame1, frame2))) in self.__links.keys():
+            print("Error : link (", frame1, ",", frame2,") already exists")
+            return
+
+        self.__links[link] = color
+
+    def deleteLink(self, frame1:str, frame2:str):
+        """
+        Deletes a link between two frames.
+        Arguments : 
+            frame1 : the name of the first frame
+            frame2 : the name of the second frame
+        """
+        link = tuple(sorted((frame1, frame2)))
+
+        if link not in self.__links.keys():
+            print("Error : link (", frame1, ",", frame2,") does not exist")
+            return
+
+        del self.__links[link]
+
+    # Points
     def pushPoint(self, name:str, point:list):
         """
         Adds or updates a points list.
@@ -94,10 +135,21 @@ class FramesViewer():
 
         if name not in self.__points:
             print("Error : points list", name, "does not exist")
+            return
 
         self.__points[name]["points"].append(point.copy())
 
     def createPointsList(self, name:str, points:list=[], color:tuple=(0, 0, 0), size:int=1, visible:bool=True):
+        """
+        Creates a list of points. It can be initialized with points, or set empty, then updated with updatePointsList().
+        Arguments : 
+            name    : the name of the points list
+            points  : a list of points with which the list is initialized
+            color   : the color of the points in that list
+            size    : the size of the points in that list
+            visible : should the points be visible or not
+        """
+
         if name in self.__points:
             print("Error : points list", name, "already exists")
             return
@@ -105,7 +157,18 @@ class FramesViewer():
         self.__points[name] = {"points" : points.copy(), "color" : color, "size" : size}
         self.__points_visible[name] = visible
 
-    def updatePointsList(self, name:str, points:list, color:tuple=None, size:int=None, rotation:list=None, translation:list=None):
+    def updatePointsList(self, name:str, points:list, color:tuple=None, size:int=None, rotation:list=None, translation:list=None, visible:bool=None):
+        """
+        Updates a list of points.
+        Arguments : 
+            name        : the name of the points list to be updated
+            points      : a new points list that replaces the previous one
+            color       : a new color. If not set, the color is not updated
+            size        : a new size. If not set, the size is not updated
+            rotation    : apply a rotation to all the points of the list
+            translation : apply a translation to all the points of the list
+            visible     : update the visibility of the points. If not set, the visibility does not change
+        """
 
         if name not in self.__points:
             print("Error : points list", name, "does not exist")
@@ -123,7 +186,16 @@ class FramesViewer():
         if size is not None:
             self.__points[name]["size"] = size
 
+        if visible is not None:
+            self.changePointsListVisibility(name, visible)
+
     def translatePointsList(self, name:str, translation:list):
+        """
+        Applies a translation to all the points of the list.
+        Arguments : 
+            name        : then name of the points list
+            translation : the translation to be applied
+        """
 
         if name not in self.__points:
             print("Error : points list", name, "does not exist")
@@ -132,30 +204,16 @@ class FramesViewer():
         for i, point in enumerate(self.__points[name]["points"]):
             self.__points[name]["points"][i] += translation
 
-    def changePointsListVisibility(self, name:str, visible:bool):
-        if name not in self.__points:
-            print("Error : points list", name, "does not exist")
-            return
-
-        self.__points_visible[name] = visible
-
-    def __rotatePoints(self, points:list, rotation:list, center:list=[0, 0, 0], degrees:bool=True):
-        pp = []
-        rot_mat = R.from_euler('xyz', rotation, degrees=degrees).as_matrix()
-        for point in points:
-            pp.append(rot_mat @ point)
-
-        return pp
-
-    def __translatePoints(self, points:list, translation):
-        pp = []
-        for point in points:
-            pp.append(point + translation)
-
-        return pp
-
-
+        
     def rotatePointsList(self, name:str, rotation:list, center:list=[0, 0, 0], degrees:bool=True):
+        """
+        Applies a rotation to all the points of the list.
+        Arguments : 
+            name     : the name of the points list
+            rotation : the rotation to be applied [x, y, z]
+            center   : the center of rotation
+            degrees  : are the values of the rotation in degrees or radians ?
+        """
 
         if name not in self.__points:
             print("Error : points list", name, "does not exist")
@@ -164,6 +222,20 @@ class FramesViewer():
         rot_mat = R.from_euler('xyz', rotation, degrees=degrees).as_matrix()
         for i, point in enumerate(self.__points[name]["points"]):
             self.__points[name]["points"][i] = rot_mat @ point
+
+    def changePointsListVisibility(self, name:str, visible:bool):
+        """
+        Updates the visibility of a points list. 
+        Arguments:
+            name    : the name of the points list
+            visible : should the points of the list be visible or not
+        """
+
+        if name not in self.__points:
+            print("Error : points list", name, "does not exist")
+            return
+
+        self.__points_visible[name] = visible
 
     def deletePointsList(self, name:str):
         """
@@ -175,12 +247,20 @@ class FramesViewer():
             del self.__points[name]
 
     def getPointsList(self, name:str):
+        """
+        Returns a points list.
+        Arguments :
+            name : the name of the points list
+        """
+
         if name not in self.__points:
             print("Error : points list", name, "does not exist")
             return
 
         return self.__points[name]["points"].copy()
 
+
+    # Meshes (WIP)
     def createMesh(self, name:str, verts:list=[]):
         if name not in self.__meshes:
             self.__meshes[name] = verts
@@ -292,7 +372,7 @@ class FramesViewer():
 
     def __display(self):
 
-        print(self.__fps)
+        # print(self.__fps)
 
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
@@ -304,6 +384,8 @@ class FramesViewer():
         except RuntimeError as e:
             # print("RuntimeError :", e)
             pass
+
+        self.__displayLinks()
 
         try:
             for name in self.__points.keys():
@@ -401,6 +483,30 @@ class FramesViewer():
         glEnable(GL_LIGHTING)
         glPopMatrix()
 
+    def __displayLinks(self):
+
+        thickness = 2
+
+        glPushMatrix()
+        glDisable(GL_LIGHTING)    
+        glLineWidth(thickness)
+        glBegin(GL_LINES)
+
+        for link, color in self.__links.items():
+
+            frame1_pos = self.__frames[link[0]][0][:3, 3]*self.__camera.getScale()
+            frame2_pos = self.__frames[link[1]][0][:3, 3]*self.__camera.getScale()
+
+            glColor3f(color[0], color[1], color[2])
+            glVertex3f(frame1_pos[0], frame1_pos[1], frame1_pos[2])
+            glVertex3f(frame2_pos[0], frame2_pos[1], frame2_pos[2])
+        
+        glEnd()
+
+        glEnable(GL_LIGHTING)
+        glPopMatrix()
+
+
     # TODO not working yet
     def __displayMesh(self, name:str):
         if name not in self.__meshes:
@@ -483,3 +589,19 @@ class FramesViewer():
 
         glEnable(GL_LIGHTING)
         glPopMatrix()
+
+    
+    def __rotatePoints(self, points:list, rotation:list, center:list=[0, 0, 0], degrees:bool=True):
+        pp = []
+        rot_mat = R.from_euler('xyz', rotation, degrees=degrees).as_matrix()
+        for point in points:
+            pp.append(rot_mat @ point)
+
+        return pp
+
+    def __translatePoints(self, points:list, translation):
+        pp = []
+        for point in points:
+            pp.append(point + translation)
+
+        return pp
