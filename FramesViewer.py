@@ -139,7 +139,7 @@ class FramesViewer():
 
         self.__points[name]["points"].append(point.copy())
 
-    def createPointsList(self, name:str, points:list=[], color:tuple=(0, 0, 0), size:int=1, visible:bool=True):
+    def createPointsList(self, name:str, points:list=[], color:tuple=(0, 0, 0), size:int=1, rotation:list=[0, 0, 0], translation:list=[0, 0, 0], visible:bool=True):
         """
         Creates a list of points. It can be initialized with points, or set empty, then updated with updatePointsList().
         Arguments : 
@@ -151,10 +151,11 @@ class FramesViewer():
         """
 
         if name in self.__points:
-            print("Error : points list", name, "already exists")
-            return
+            raise RuntimeError(str("Error : points list "+name+" already exists"))
+            # print("Error : points list", name, "already exists")
+            # return
 
-        self.__points[name] = {"points" : points.copy(), "color" : color, "size" : size}
+        self.__points[name] = {"points" : points.copy(), "color" : color, "size" : size, "rotation" : rotation, "translation" : translation, "oldness" : -1}
         self.__points_visible[name] = visible
 
     def updatePointsList(self, name:str, points:list, color:tuple=None, size:int=None, rotation:list=None, translation:list=None, visible:bool=None):
@@ -175,9 +176,12 @@ class FramesViewer():
             return
 
         if rotation is not None:
-            points = self.__rotatePoints(points, rotation)
+            self.__points[name]["rotation"] = rotation
+        points = self.__rotatePoints(points, self.__points[name]["rotation"])
+
         if translation is not None:
-            points = self.__translatePoints(points, translation)
+            self.__points[name]["translation"] = translation
+        points = self.__translatePoints(points, self.__points[name]["translation"])
 
         self.__points[name]["points"] = points
 
@@ -185,6 +189,8 @@ class FramesViewer():
             self.__points[name]["color"] = color
         if size is not None:
             self.__points[name]["size"] = size
+        
+        self.__points[name]["oldness"] = -1
 
         if visible is not None:
             self.changePointsListVisibility(name, visible)
@@ -258,6 +264,13 @@ class FramesViewer():
             return
 
         return self.__points[name]["points"].copy()
+
+    def hideOldPointsLists(self, max_oldness=1):
+        for name in self.__points.keys():
+            if self.__points[name]["oldness"] > max_oldness:
+                self.changePointsListVisibility(name, False)
+            else:
+                self.changePointsListVisibility(name, True)
 
 
     # Meshes (WIP)
@@ -391,6 +404,7 @@ class FramesViewer():
             for name in self.__points.keys():
                 if self.__points_visible[name]:
                     self.__displayPoints(name)
+                    self.__tickPointsList(name)
         except RuntimeError as e:
             pass
 
@@ -423,6 +437,9 @@ class FramesViewer():
 
         glEnable(GL_LIGHTING)
         glPopMatrix()
+
+    def __tickPointsList(self, name):
+        self.__points[name]["oldness"] += 1
 
     def __displayPoint(self, _pos, color=(0, 0, 0), size=1):
         pos = _pos.copy()
