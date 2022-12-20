@@ -1,8 +1,8 @@
-from FramesViewer import FramesViewer
+from FramesViewer.viewer import Viewer 
 from FramesViewer import utils
 import time
 
-fv = FramesViewer()
+fv = Viewer()
 fv.start()
 
 # Frames

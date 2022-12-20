@@ -6,14 +6,14 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 import time
 import threading
-import fv_utils as utils
-from camera import Camera
-from inputs import Inputs
+import FramesViewer.utils as utils
+from FramesViewer.camera import Camera
+from FramesViewer.inputs import Inputs
 
 # TODO display the frames names in the viewer
 # TODO display fps in viewer
 
-class FramesViewer():
+class Viewer():
     
     def __init__(self, window_size:list = [1000, 1000], name:str = b"FramesViewer", size:int = 0.1):
         """
