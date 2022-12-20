@@ -9,6 +9,8 @@ https://user-images.githubusercontent.com/6552564/194662755-2a6c181c-e662-4104-a
 pip install FramesViewer
 ```
 
+or
+
 ```python
 pip3 install -e .
 ```
