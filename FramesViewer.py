@@ -6,7 +6,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 import time
 import threading
-import utils
+import fv_utils as utils
 from camera import Camera
 from inputs import Inputs
 
@@ -362,7 +362,7 @@ class FramesViewer():
         if self.__inputs.mouseMPressed():
             self.__camera.move(self.__inputs.getMouseRel())
 
-        if self.__inputs.mouseRPressed():
+        if self.__inputs.mouseLPressed():
             if self.__inputs.ctrlPressed():
                 self.__camera.move(self.__inputs.getMouseRel())
             else:
