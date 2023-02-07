@@ -52,7 +52,6 @@ from OpenGL.GL import (
     GL_DEPTH_BUFFER_BIT,
     GL_POINTS,
     GL_LINES,
-    GL_QUADS,
 )
 
 import sys
@@ -63,6 +62,7 @@ import threading
 import FramesViewer.utils as utils
 from FramesViewer.camera import Camera
 from FramesViewer.inputs import Inputs
+from FramesViewer.mesh import Mesh
 
 # TODO display the frames names in the viewer
 # TODO display fps in viewer
@@ -358,19 +358,18 @@ class Viewer:
             else:
                 self.changePointsListVisibility(name, True)
 
-    # Meshes (WIP)
-    def createMesh(self, name: str, verts: list = []):
+    def createMesh(self, name: str, path: str, pose: np.ndarray, scale=1.):
         if name not in self.__meshes:
-            self.__meshes[name] = verts
+            self.__meshes[name] = Mesh(path, pose, self.__size, scale=scale)
         else:
             print("Error : mesh", name, "already exists. Use updateMesh() instead")
 
-    def updateMesh(self, name: str, verts: list):
+    def updateMesh(self, name: str, pose: np.ndarray):
         if name not in self.__meshes:
             print("Error : mesh", name, "does not exist")
             return
 
-        self.__meshes[name] = verts
+        self.__meshes[name].setPose(pose)
 
     def get_key_pressed(self):
         return self.__inputs.getKeyPressed()
@@ -485,8 +484,8 @@ class Viewer:
         except RuntimeError:
             pass
 
-        for name in self.__meshes.keys():
-            self.__displayMesh(name)
+        for name, mesh in self.__meshes.items():
+            mesh.render(self.__camera.getScale(), showFrame=True)
 
         glutSwapBuffers()
         glutPostRedisplay()
@@ -581,6 +580,7 @@ class Viewer:
             glTranslatef(trans[0], trans[1], trans[2])
             gluSphere(gluNewQuadric(), size / 10, 10, 10)
 
+        glLineWidth(1)
         glEnable(GL_LIGHTING)
         glPopMatrix()
 
@@ -600,32 +600,6 @@ class Viewer:
             glVertex3f(frame1_pos[0], frame1_pos[1], frame1_pos[2])
             glVertex3f(frame2_pos[0], frame2_pos[1], frame2_pos[2])
 
-        glEnd()
-
-        glEnable(GL_LIGHTING)
-        glPopMatrix()
-
-    # TODO not working yet
-    def __displayMesh(self, name: str):
-        if name not in self.__meshes:
-            print("Error : mesh", name, " does not exist.")
-            return
-
-        verts = self.__meshes[name]
-
-        glPushMatrix()
-        glDisable(GL_LIGHTING)
-        glLineWidth(1)
-        glColor3f(0, 0, 0)
-
-        glBegin(GL_QUADS)
-
-        for vert in verts:
-            glVertex3f(
-                vert[0] * self.__camera.getScale(),
-                vert[1] * self.__camera.getScale(),
-                vert[2] * self.__camera.getScale(),
-            )
         glEnd()
 
         glEnable(GL_LIGHTING)
