@@ -1,4 +1,4 @@
-from FramesViewer.viewer import Viewer 
+from FramesViewer.viewer import Viewer
 from FramesViewer import utils
 import time
 
@@ -27,7 +27,7 @@ fv.createPointsList("a", size=10, color=(1, 0, 0))
 for i in range(10):
     for j in range(10):
         for z in range(10):
-            fv.pushPoint("a", [i*0.1, j*0.1, z*0.1])
+            fv.pushPoint("a", [i * 0.1, j * 0.1, z * 0.1])
 
 # An infinite loop is needed to keep the viewer thread alive.
 while True:
