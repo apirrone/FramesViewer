@@ -15,12 +15,13 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
 # scipy==1.9.0
 setup(
     name="FramesViewer",
-    version="1.0.0",
+    version="1.0.1",
     packages=find_packages(exclude=["tests"]),
     install_requires=[
         "numpy",
         "PyOpenGL",
         "scipy",
+        "pywavefront"
     ],
     author="Antoine Pirrone",
     author_email="antoine.pirrone@gmail.com",
