@@ -99,6 +99,7 @@ class Viewer:
         self.__size = size
 
         self.__camera = Camera((3, -3, 3), (0, 0, 0))
+        # self.__camera.setPose(utils.make_pose([-1, -1, -1], [0, 45, 0]))
         self.__inputs = Inputs()
         self.__prev_t = time.time()
         self.__dt = 0
@@ -358,7 +359,7 @@ class Viewer:
             else:
                 self.changePointsListVisibility(name, True)
 
-    def createMesh(self, name: str, path: str, pose: np.ndarray, scale=1.):
+    def createMesh(self, name: str, path: str, pose: np.ndarray, scale=1.0):
         if name not in self.__meshes:
             self.__meshes[name] = Mesh(path, pose, self.__size, scale=scale)
         else:
@@ -373,6 +374,9 @@ class Viewer:
 
     def get_key_pressed(self):
         return self.__inputs.getKeyPressed()
+
+    def setCameraPose(self, pose: np.ndarray):
+        self.__camera.setPose(pose)
 
     # ==============================================================================
     # Private methods
@@ -453,6 +457,13 @@ class Viewer:
 
         if self.__inputs.wheelDown():
             self.__camera.applyZoom(15)
+
+        # if self.__inputs.getKeyPressed() == b"t":
+        #     print("couc")
+        #     campose = self.__camera.getPose()
+        #     campose[:3, 3] += [1, 0, 0]
+
+        #     self.__camera.setPose(campose)
 
         # TODO how to be able to check keys pressed inside FramesViewer AND outside ?
         # self.__inputs.getKeyPressed()
