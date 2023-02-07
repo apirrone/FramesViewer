@@ -1,21 +1,20 @@
 import numpy as np
-from OpenGL.GLUT import *
+from OpenGL.GLUT import glutGetModifiers
 
-class Inputs():
+
+class Inputs:
     def __init__(self):
-
         self.__inputs_state = {
-            "prev_mouse_pos"  : np.array([0, 0]),
-            "mouse_rel"       : np.array([0, 0]),
-            "mouse_l_pressed" : False,
-            "mouse_m_pressed" : False,
-            "mouse_r_pressed" : False,
-            "ctrl_pressed"    : False,
-            "wheel_up"        : False,
-            "wheel_down"      : False,
-            "key_pressed"     : None
+            "prev_mouse_pos": np.array([0, 0]),
+            "mouse_rel": np.array([0, 0]),
+            "mouse_l_pressed": False,
+            "mouse_m_pressed": False,
+            "mouse_r_pressed": False,
+            "ctrl_pressed": False,
+            "wheel_up": False,
+            "wheel_down": False,
+            "key_pressed": None,
         }
-
 
     # Callbacks
     def mouseClick(self, button, mode, x, y):
@@ -42,26 +41,27 @@ class Inputs():
             elif mode == 1:
                 self.__inputs_state["mouse_r_pressed"] = False
 
-        if button == 3 : 
-            self.__inputs_state["wheel_up"]   = True
+        if button == 3:
+            self.__inputs_state["wheel_up"] = True
             self.__inputs_state["wheel_down"] = False
         elif button == 4:
             self.__inputs_state["wheel_down"] = True
-            self.__inputs_state["wheel_up"]   = False
+            self.__inputs_state["wheel_up"] = False
 
         if glutGetModifiers() == 2:
             self.__inputs_state["ctrl_pressed"] = True
-        else:    
+        else:
             self.__inputs_state["ctrl_pressed"] = False
 
     def mouseMotion(self, x, y):
         mouse_pos = np.array([x, y])
-        self.__inputs_state["mouse_rel"] = mouse_pos - self.__inputs_state["prev_mouse_pos"]
+        self.__inputs_state["mouse_rel"] = (
+            mouse_pos - self.__inputs_state["prev_mouse_pos"]
+        )
         self.__inputs_state["prev_mouse_pos"] = mouse_pos.copy()
 
     def keyboard(self, key, x, y):
         self.__inputs_state["key_pressed"] = key
-
 
     # Getters and setters
     def getInputsState(self):
@@ -103,4 +103,3 @@ class Inputs():
             self.__inputs_state["wheel_down"] = False
 
         return ret
-
