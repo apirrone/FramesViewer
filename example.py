@@ -20,8 +20,9 @@ fv.deleteFrame("frame3")
 
 fv.createPointsList("a", size=10, color=(1, 0, 0))
 
-# verts = [[0, 0, 0], [1, 0, 0], [1, 1, 0]]
-# fv.createMesh("test", verts=verts)
+fv.createMesh(
+    "mug", "assets/mug_plastoc.obj", utils.make_pose([0.1, 0, 0], [0, 0, 0]), scale=0.01
+)
 
 # Points
 for i in range(10):
@@ -34,4 +35,5 @@ while True:
     frame2 = utils.translateAbsolute(frame2, [0, 0.0005, 0])
     frame2 = utils.rotateInSelf(frame2, [0.5, 0.5, 0.5])
     fv.pushFrame(frame2, "frame2", [0, 1, 0])
+
     time.sleep(0.01)
