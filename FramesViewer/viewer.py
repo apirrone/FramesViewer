@@ -359,9 +359,9 @@ class Viewer:
             else:
                 self.changePointsListVisibility(name, True)
 
-    def createMesh(self, name: str, path: str, pose: np.ndarray, scale=1.0):
+    def createMesh(self, name: str, path: str, pose: np.ndarray, scale=1.0, wireFrame=False):
         if name not in self.__meshes:
-            self.__meshes[name] = Mesh(path, pose, self.__size, scale=scale)
+            self.__meshes[name] = Mesh(path, pose, self.__size, scale=scale, wireFrame=wireFrame)
         else:
             print("Error : mesh", name, "already exists. Use updateMesh() instead")
 
