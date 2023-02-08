@@ -13,6 +13,7 @@ from OpenGL.GL import (
     glColor3f,
     glEnable,
     glScalef,
+    glMultMatrixf,
     GL_FRONT_AND_BACK,
     GL_LINE,
     GL_TRIANGLES,
@@ -26,13 +27,13 @@ import numpy as np
 
 
 class Mesh:
-    def __init__(self, path_obj, pose, viewer_scale, scale=1.0, wireframe=False):
+    def __init__(self, path_obj, pose, viewer_scale, scale=1.0, wireFrame=False):
         self.__mesh = pywavefront.Wavefront(
             path_obj,
             collect_faces=True,
             encoding="ISO-8859-1",
         )
-        self.__wireframe = wireframe
+        self.__wireframe = wireFrame
         self.__pose = pose
         self.__viewer_scale = viewer_scale
         self.__scale = [scale, scale, scale]
@@ -50,16 +51,24 @@ class Mesh:
         size = self.__viewer_scale * camera_scale
 
         glPushMatrix()
+        
         glTranslatef(*np.array(self.__pose[:3, 3] * camera_scale))
         glScalef(*(np.array(self.__scale) * size))
 
-        rot = R.from_matrix(self.__pose[:3, :3]).as_euler("xyz", degrees=False)
+        rotmat = np.eye(4)
+        rotmat[:3, :3] = np.linalg.inv(self.__pose[:3, :3])
 
-        for i, r in enumerate(rot):
-            xyz = [0, 0, 0]
-            xyz[i] = 1
-            r += visual_rot[i]
-            glRotatef(np.rad2deg(r), *xyz)
+        glMultMatrixf(rotmat.tolist())
+        # rot = R.from_matrix(self.__pose[:3, :3]).as_euler("xyz", degrees=False)
+        # print(list(self.__pose[:3, :3]))
+
+        # print(rot)
+
+        # for i, r in enumerate(rot):
+        #     xyz = [0, 0, 0]
+        #     xyz[i] = 1
+        #     # r += visual_rot[i]
+        #     glRotatef(np.rad2deg(r), *xyz)
 
         for mesh in self.__mesh.mesh_list:
             glBegin(GL_TRIANGLES)

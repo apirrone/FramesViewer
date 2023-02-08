@@ -3,6 +3,8 @@ from OpenGL.GLU import gluLookAt
 from OpenGL.GL import (
     glMatrixMode,
     glLoadIdentity,
+    glPushMatrix,
+    glLoadMatrixd,
     glGetFloatv,
     GL_MODELVIEW,
     GL_MODELVIEW_MATRIX,
@@ -67,6 +69,29 @@ class Camera:
         trans_diff = self.__getTransDiff(mouse_rel) * self.__speed
 
         self.__pos += trans_diff * self.__dt * 2
+
+    def setUp(self, up):
+        self.__up = up
+
+    def setCenter(self, center):
+        self.__center = center
+
+    def setPos(self, pos):
+        self.__pos = pos
+
+    def setPose(self, pose):
+        up = pose[:3, 1]  # y
+        eye = pose[:3, 3]  # t
+        negativeZ = pose[:3, 2]
+
+        center = eye + negativeZ * -1 * np.linalg.norm(np.array(self.__center) - np.array(self.__pos))
+
+        self.setUp(up)
+        self.setPos(eye)
+        self.setCenter(center)
+
+    def getPose(self):
+        return self.__pose
 
     # ==============================================================================
     # Private methods
