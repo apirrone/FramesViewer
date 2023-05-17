@@ -135,7 +135,11 @@ class Viewer:
             color     : a list of size 3 (RGB between 0 and 1)
             thickness : the thickness of the lines drawn to show the frame
         """
-        self.__frames[name] = (frame.copy(), color, thickness)
+        if frame is not None:
+            self.__frames[name] = (frame.copy(), color, thickness)
+        else:
+            print("Error : frame is None")
+
 
     def deleteFrame(self, name: str):
         """
