@@ -14,7 +14,7 @@ from OpenGL.GLUT import (
     GLUT_DOUBLE,
     GLUT_RGB,
 )
-from OpenGL.GLU import gluPerspective, gluSphere, gluNewQuadric
+from OpenGL.GLU import gluPerspective
 from OpenGL.GL import (
     glClearColor,
     glShadeModel,
@@ -32,7 +32,6 @@ from OpenGL.GL import (
     glPopMatrix,
     glVertex3f,
     glLineWidth,
-    glTranslatef,
     glColor4f,
     glLightfv,
     GL_SMOOTH,
@@ -63,6 +62,7 @@ import FramesViewer.utils as utils
 from FramesViewer.camera import Camera
 from FramesViewer.inputs import Inputs
 from FramesViewer.mesh import Mesh
+from FramesViewer.frame import Frame
 
 # TODO display the frames names in the viewer
 # TODO display fps in viewer
@@ -106,8 +106,7 @@ class Viewer:
         self.__dts = []
         self.__fps = 0
 
-    def __reset_camera(self):
-        self.__camera = Camera((3, -3, 3), (0, 0, 0))
+        self.__originFrame = Frame(utils.make_pose([0, 0, 0], [0, 0, 0]), "origin")
 
     # ==============================================================================
     # Public methods
@@ -123,7 +122,11 @@ class Viewer:
 
     # Frames
     def pushFrame(
-        self, frame: np.ndarray, name: str, color: tuple = None, thickness: int = 4
+        self,
+        pose: np.ndarray,
+        name: str,
+        color: tuple = None,
+        thickness: int = 4,
     ):
         """
         Adds or updates a frame.
@@ -135,11 +138,10 @@ class Viewer:
             color     : a list of size 3 (RGB between 0 and 1)
             thickness : the thickness of the lines drawn to show the frame
         """
-        if frame is not None:
-            self.__frames[name] = (frame.copy(), color, thickness)
+        if pose is not None:
+            self.__frames[name] = Frame(pose.copy(), name, color, thickness)
         else:
             print("Error : frame is None")
-
 
     def deleteFrame(self, name: str):
         """
@@ -362,7 +364,7 @@ class Viewer:
             else:
                 self.changePointsListVisibility(name, True)
 
-    def createMesh(self, name: str, path: str, pose: np.ndarray, scale=1.):
+    def createMesh(self, name: str, path: str, pose: np.ndarray, scale=1.0):
         if name not in self.__meshes:
             self.__meshes[name] = Mesh(path, pose, self.__size, scale=scale)
         else:
@@ -473,8 +475,9 @@ class Viewer:
         self.__displayWorld()
 
         try:
-            for name, (frame, color, thickness) in self.__frames.items():
-                self.__displayFrame(frame, color, thickness)
+            for name in self.__frames.keys():
+                frame = self.__frames[name]
+                frame.display(self.__size, self.__camera)
         except RuntimeError:
             pass
 
@@ -544,50 +547,6 @@ class Viewer:
         glEnable(GL_LIGHTING)
         glPopMatrix()
 
-    def __displayFrame(self, _pose, color=None, thickness=4):
-        pose = _pose.copy()
-
-        glPushMatrix()
-
-        size = self.__size * self.__camera.getScale()
-
-        trans = pose[:3, 3] * self.__camera.getScale()
-        rot_mat = pose[:3, :3]
-
-        x_end_vec = rot_mat @ [size, 0, 0] + trans
-        y_end_vec = rot_mat @ [0, size, 0] + trans
-        z_end_vec = rot_mat @ [0, 0, size] + trans
-
-        glDisable(GL_LIGHTING)
-        glLineWidth(thickness)
-        glBegin(GL_LINES)
-
-        # X
-        glColor3f(1, 0, 0)
-        glVertex3f(trans[0], trans[1], trans[2])
-        glVertex3f(x_end_vec[0], x_end_vec[1], x_end_vec[2])
-
-        # Y
-        glColor3f(0, 1, 0)
-        glVertex3f(trans[0], trans[1], trans[2])
-        glVertex3f(y_end_vec[0], y_end_vec[1], y_end_vec[2])
-
-        # Z
-        glColor3f(0, 0, 1)
-        glVertex3f(trans[0], trans[1], trans[2])
-        glVertex3f(z_end_vec[0], z_end_vec[1], z_end_vec[2])
-
-        glEnd()
-
-        if color is not None:
-            glColor3f(color[0], color[1], color[2])
-            glTranslatef(trans[0], trans[1], trans[2])
-            gluSphere(gluNewQuadric(), size / 10, 10, 10)
-
-        glLineWidth(1)
-        glEnable(GL_LIGHTING)
-        glPopMatrix()
-
     def __displayLinks(self):
         thickness = 2
 
@@ -597,8 +556,8 @@ class Viewer:
         glBegin(GL_LINES)
 
         for link, color in self.__links.items():
-            frame1_pos = self.__frames[link[0]][0][:3, 3] * self.__camera.getScale()
-            frame2_pos = self.__frames[link[1]][0][:3, 3] * self.__camera.getScale()
+            frame1_pos = self.__frames[link[0]].pose[:3, 3] * self.__camera.getScale()
+            frame2_pos = self.__frames[link[1]].pose[:3, 3] * self.__camera.getScale()
 
             glColor3f(color[0], color[1], color[2])
             glVertex3f(frame1_pos[0], frame1_pos[1], frame1_pos[2])
@@ -610,7 +569,7 @@ class Viewer:
         glPopMatrix()
 
     def __displayWorld(self):
-        self.__displayFrame(utils.make_pose([0, 0, 0], [0, 0, 0]))
+        self.__originFrame.display(self.__size, self.__camera)
 
         glPushMatrix()
 
@@ -685,3 +644,6 @@ class Viewer:
             pp.append(point + translation)
 
         return pp
+    
+    def __reset_camera(self):
+        self.__camera = Camera((3, -3, 3), (0, 0, 0))
