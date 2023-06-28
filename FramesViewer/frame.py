@@ -29,9 +29,15 @@ class Frame:
         self.name = name
         self.color = color
         self.thickness = thickness
+        self.children = []
 
-    def display(self, size, camera):
+    def display(self, size, camera, parent_pose=None):
         pose = self.absolute_pose.copy()
+        if parent_pose is not None:
+            pose = parent_pose @ pose
+
+        for child in self.children:
+            child.display(size, camera, pose)
 
         glPushMatrix()
 
@@ -73,3 +79,7 @@ class Frame:
         glLineWidth(1)
         glEnable(GL_LIGHTING)
         glPopMatrix()
+
+    # TODO c'est nul en fait, c'est la galère après 1 child. Trouver une autre manière de faire
+    def addChild(self, pose, name, color=None, thickness=4):
+        self.children.append(Frame(pose, name, color, thickness))

@@ -377,6 +377,14 @@ class Viewer:
 
         self.__meshes[name].setPose(pose)
 
+    def addChild(
+        self, parent_name, child_name, child_pose, child_color=None, child_thickness=4
+    ):
+        if parent_name in self.__frames:
+            self.__frames[parent_name].addChild(
+                child_pose, child_name, child_color, child_thickness
+            )
+        
     def get_key_pressed(self):
         return self.__inputs.getKeyPressed()
 
@@ -644,6 +652,6 @@ class Viewer:
             pp.append(point + translation)
 
         return pp
-    
+
     def __reset_camera(self):
         self.__camera = Camera((3, -3, 3), (0, 0, 0))
