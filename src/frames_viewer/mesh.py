@@ -43,7 +43,7 @@ class Mesh:
 
     def render(self, camera_scale, showFrame=False, visual_rot=[0, 0, 0]):
         if showFrame:
-            self.displayFrame(self.__pose, self.__viewer_scale, camera_scale)
+            self.display_frame(self.__pose, self.__viewer_scale, camera_scale)
 
         if self.__wireframe:
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
@@ -84,7 +84,7 @@ class Mesh:
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
 
     @staticmethod
-    def displayFrame(_pose, viewer_scale, camera_scale, thickness=10):
+    def display_frame(_pose, viewer_scale, camera_scale, thickness=10):
         pose = _pose.copy()
 
         glPushMatrix()

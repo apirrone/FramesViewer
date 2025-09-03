@@ -17,7 +17,7 @@ class Inputs:
         }
 
     # Callbacks
-    def mouseClick(self, button, mode, x, y):
+    def mouse_click(self, button, mode, x, y):
         if mode == 0:
             self.__inputs_state["prev_mouse_pos"] = np.array([x, y])
         else:
@@ -53,7 +53,7 @@ class Inputs:
         else:
             self.__inputs_state["ctrl_pressed"] = False
 
-    def mouseMotion(self, x, y):
+    def mouse_motion(self, x, y):
         mouse_pos = np.array([x, y])
         self.__inputs_state["mouse_rel"] = (
             mouse_pos - self.__inputs_state["prev_mouse_pos"]
@@ -64,40 +64,40 @@ class Inputs:
         self.__inputs_state["key_pressed"] = key
 
     # Getters and setters
-    def getInputsState(self):
+    def get_inputs_state(self):
         return self.__inputs_state
 
-    def getMouseRel(self):
+    def get_mouse_rel(self):
         return self.__inputs_state["mouse_rel"]
 
-    def setMouseRel(self, val):
+    def set_mouse_rel(self, val):
         self.__inputs_state["mouse_rel"] = val
 
-    def getKeyPressed(self):
+    def get_key_pressed(self):
         ret = self.__inputs_state["key_pressed"]
         self.__inputs_state["key_pressed"] = None
         return ret
 
-    def mouseLPressed(self):
+    def mouse_l_pressed(self):
         return self.__inputs_state["mouse_l_pressed"]
 
-    def mouseMPressed(self):
+    def mouse_m_pressed(self):
         return self.__inputs_state["mouse_m_pressed"]
 
-    def mouseRPressed(self):
+    def mouse_r_pressed(self):
         return self.__inputs_state["mouse_r_pressed"]
 
-    def ctrlPressed(self):
+    def ctrl_pressed(self):
         return self.__inputs_state["ctrl_pressed"]
 
-    def wheelUp(self):
+    def wheel_up(self):
         ret = self.__inputs_state["wheel_up"]
         if self.__inputs_state["wheel_up"]:
             self.__inputs_state["wheel_up"] = False
 
         return ret
 
-    def wheelDown(self):
+    def wheel_down(self):
         ret = self.__inputs_state["wheel_down"]
         if self.__inputs_state["wheel_down"]:
             self.__inputs_state["wheel_down"] = False

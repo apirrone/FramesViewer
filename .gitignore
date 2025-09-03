@@ -1,4 +1,3 @@
-__pycache__/*
-FramesViewer.egg-info/*
+__pycache__/
+frames_viewer.egg-info/
 dist/*
-FramesViewer/__pycache__/*

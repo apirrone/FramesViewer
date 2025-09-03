@@ -9,7 +9,7 @@ from OpenGL.GL import (
     GL_MODELVIEW,
     GL_MODELVIEW_MATRIX,
 )
-from FramesViewer import utils
+from frames_viewer import utils
 
 
 class Camera:
@@ -47,66 +47,68 @@ class Camera:
             self.__up[2],
         )
 
-        self.__updatePose()
+        self.__update_pose()
 
-    def applyZoom(self, incr_value):
+    def apply_zoom(self, incr_value):
         pos = np.array(self.__pos)
         center = np.array(self.__center)
         dir = (pos - center) / np.linalg.norm(pos - center)  # normalized
 
         self.__pos += dir * incr_value * self.__dt
 
-    def getScale(self):
+    def get_scale(self):
         return self.__scale
 
     def move(self, mouse_rel):
-        trans_diff = self.__getTransDiff(mouse_rel) * self.__speed
+        trans_diff = self.__get_trans_diff(mouse_rel) * self.__speed
 
         self.__pos += trans_diff * self.__dt
         self.__center += trans_diff * self.__dt
 
     def rotate(self, mouse_rel):
-        trans_diff = self.__getTransDiff(mouse_rel) * self.__speed
+        trans_diff = self.__get_trans_diff(mouse_rel) * self.__speed
 
         self.__pos += trans_diff * self.__dt * 2
 
-    def setUp(self, up):
+    def set_up(self, up):
         self.__up = up
 
-    def setCenter(self, center):
+    def set_center(self, center):
         self.__center = center
 
-    def setPos(self, pos):
+    def set_pos(self, pos):
         self.__pos = pos
 
-    def setPose(self, pose):
+    def set_pose(self, pose):
         up = pose[:3, 1]  # y
         eye = pose[:3, 3]  # t
         negativeZ = pose[:3, 2]
 
-        center = eye + negativeZ * -1 * np.linalg.norm(np.array(self.__center) - np.array(self.__pos))
+        center = eye + negativeZ * -1 * np.linalg.norm(
+            np.array(self.__center) - np.array(self.__pos)
+        )
 
-        self.setUp(up)
-        self.setPos(eye)
-        self.setCenter(center)
+        self.set_up(up)
+        self.set_pos(eye)
+        self.set_center(center)
 
-    def getPose(self):
+    def get_pose(self):
         return self.__pose
 
     # ==============================================================================
     # Private methods
 
-    def __updatePose(self):
+    def __update_pose(self):
         self.__pose = np.eye(4)
         self.__pose[:3, :3] = np.array(glGetFloatv(GL_MODELVIEW_MATRIX))[:3, :3]
         self.__pose[:3, 3] = self.__pos
 
-    def __getTransDiff(self, mouse_rel):
+    def __get_trans_diff(self, mouse_rel):
         mouse_rel = np.array([*mouse_rel, 0])
         mouse_rel[0] = -mouse_rel[0]
 
         old_pose = self.__pose.copy()
-        self.__pose = utils.translateInSelf(self.__pose, mouse_rel)
+        self.__pose = utils.translate_in_self(self.__pose, mouse_rel)
         trans_diff = self.__pose[:3, 3] - old_pose[:3, 3]
 
         return trans_diff

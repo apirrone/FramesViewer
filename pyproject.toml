@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "frames_viewer"
+version = "1.1.0"
+authors = [{ name = "Antoine Pirrone", email = "antoine.pirrone@gmail.com" }]
+description = "A simple live 6D frames viewer (and more)"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = ["numpy", "PyOpenGL", "scipy", "pywavefront"]
+
+
+[project.scripts]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+include-package-data = true
+
+
+[tool.setuptools.packages.find]
+where = ["src"]

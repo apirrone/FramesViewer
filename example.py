@@ -1,5 +1,7 @@
-from FramesViewer.viewer import Viewer
-from FramesViewer import utils
+from frames_viewer import Viewer
+import numpy as np
+import frames_viewer.utils as utils
+
 import time
 
 fv = Viewer()
@@ -10,17 +12,17 @@ frame1 = utils.make_pose([0.15, 0.15, 0], [45, 0, 0])
 frame2 = utils.make_pose([0.15, 0.15, 0.15], [0, 90, 45])
 frame3 = frame2.copy()
 
-fv.pushFrame(frame1, "frame1", [1, 0, 0])
-fv.pushFrame(frame2, "frame2", [0, 1, 0])
+fv.push_frame(frame1, "frame1", [1, 0, 0])
+fv.push_frame(frame2, "frame2", [0, 1, 0])
 
-fv.pushLink("frame1", "frame2", color=(1, 0, 0))
+fv.push_link("frame1", "frame2", color=(1, 0, 0))
 
-fv.pushFrame(frame3, "frame3")
-fv.deleteFrame("frame3")
+fv.push_frame(frame3, "frame3")
+fv.delete_frame("frame3")
 
 # fv.createPointsList("a", size=10, color=(1, 0, 0))
 
-fv.createMesh(
+fv.create_mesh(
     "mug", "assets/mug_plastoc.obj", utils.make_pose([0.1, 0, 0], [0, 0, 0]), scale=0.01
 )
 
@@ -32,8 +34,8 @@ fv.createMesh(
 
 # An infinite loop is needed to keep the viewer thread alive.
 while True:
-    frame2 = utils.translateAbsolute(frame2, [0, 0.0005, 0])
-    frame2 = utils.rotateInSelf(frame2, [0.5, 0.5, 0.5])
-    fv.pushFrame(frame2, "frame2", [0, 1, 0])
+    frame2 = utils.translate_absolute(frame2, [0, 0.0005, 0])
+    frame2 = utils.rotate_in_self(frame2, [0.5, 0.5, 0.5])
+    fv.push_frame(frame2, "frame2", [0, 1, 0])
 
     time.sleep(0.01)
