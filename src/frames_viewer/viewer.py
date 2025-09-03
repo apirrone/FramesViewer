@@ -59,10 +59,10 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 import time
 import threading
-import FramesViewer.utils as utils
-from FramesViewer.camera import Camera
-from FramesViewer.inputs import Inputs
-from FramesViewer.mesh import Mesh
+import frames_viewer.utils as utils
+from frames_viewer.camera import Camera
+from frames_viewer.inputs import Inputs
+from frames_viewer.mesh import Mesh
 
 # TODO display the frames names in the viewer
 # TODO display fps in viewer
@@ -123,7 +123,7 @@ class Viewer:
         self.__t.start()
 
     # Frames
-    def pushFrame(
+    def push_frame(
         self, frame: np.ndarray, name: str, color: tuple = None, thickness: int = 4
     ):
         """
@@ -138,7 +138,7 @@ class Viewer:
         """
         self.__frames[name] = (frame.copy(), color, thickness)
 
-    def deleteFrame(self, name: str):
+    def delete_frame(self, name: str):
         """
         Deletes the frame of name \"name\".
         Arguments:
@@ -147,7 +147,7 @@ class Viewer:
         if name in self.__frames:
             del self.__frames[name]
 
-    def pushLink(self, frame1: str, frame2: str, color: tuple = (0, 0, 0)):
+    def push_link(self, frame1: str, frame2: str, color: tuple = (0, 0, 0)):
         """
         Adds a (visual) link between two frames. The order does not matter.
         Arguments:
@@ -168,7 +168,7 @@ class Viewer:
 
         self.__links[link] = color
 
-    def deleteLink(self, frame1: str, frame2: str):
+    def delete_link(self, frame1: str, frame2: str):
         """
         Deletes a link between two frames.
         Arguments :
@@ -184,7 +184,7 @@ class Viewer:
         del self.__links[link]
 
     # Points
-    def pushPoint(self, name: str, point: list):
+    def push_point(self, name: str, point: list):
         """
         Adds or updates a points list.
         If the points list name does not exist yet, it is created.
@@ -200,7 +200,7 @@ class Viewer:
 
         self.__points[name]["points"].append(point.copy())
 
-    def createPointsList(
+    def create_points_list(
         self,
         name: str,
         points: list = [],
@@ -235,7 +235,7 @@ class Viewer:
         }
         self.__points_visible[name] = visible
 
-    def updatePointsList(
+    def update_points_list(
         self,
         name: str,
         points: list,
@@ -263,11 +263,11 @@ class Viewer:
 
         if rotation is not None:
             self.__points[name]["rotation"] = rotation
-        points = self.__rotatePoints(points, self.__points[name]["rotation"])
+        points = self.__rotate_points(points, self.__points[name]["rotation"])
 
         if translation is not None:
             self.__points[name]["translation"] = translation
-        points = self.__translatePoints(points, self.__points[name]["translation"])
+        points = self.__translate_points(points, self.__points[name]["translation"])
 
         self.__points[name]["points"] = points
 
@@ -279,9 +279,9 @@ class Viewer:
         self.__points[name]["oldness"] = -1
 
         if visible is not None:
-            self.changePointsListVisibility(name, visible)
+            self.change_points_list_visibility(name, visible)
 
-    def translatePointsList(self, name: str, translation: list):
+    def translate_points_list(self, name: str, translation: list):
         """
         Applies a translation to all the points of the list.
         Arguments :
@@ -296,7 +296,7 @@ class Viewer:
         for i, point in enumerate(self.__points[name]["points"]):
             self.__points[name]["points"][i] += translation
 
-    def rotatePointsList(
+    def rotate_points_list(
         self, name: str, rotation: list, center: list = [0, 0, 0], degrees: bool = True
     ):
         """
@@ -316,7 +316,7 @@ class Viewer:
         for i, point in enumerate(self.__points[name]["points"]):
             self.__points[name]["points"][i] = rot_mat @ point
 
-    def changePointsListVisibility(self, name: str, visible: bool):
+    def change_points_list_visibility(self, name: str, visible: bool):
         """
         Updates the visibility of a points list.
         Arguments:
@@ -330,7 +330,7 @@ class Viewer:
 
         self.__points_visible[name] = visible
 
-    def deletePointsList(self, name: str):
+    def delete_points_list(self, name: str):
         """
         Deletes the points list of name \"name\".
         Arguments:
@@ -339,7 +339,7 @@ class Viewer:
         if name in self.__points:
             del self.__points[name]
 
-    def getPointsList(self, name: str):
+    def get_points_list(self, name: str):
         """
         Returns a points list.
         Arguments :
@@ -352,31 +352,35 @@ class Viewer:
 
         return self.__points[name]["points"].copy()
 
-    def hideOldPointsLists(self, max_oldness=1):
+    def hide_old_points_lists(self, max_oldness=1):
         for name in self.__points.keys():
             if self.__points[name]["oldness"] > max_oldness:
-                self.changePointsListVisibility(name, False)
+                self.change_points_list_visibility(name, False)
             else:
-                self.changePointsListVisibility(name, True)
+                self.change_points_list_visibility(name, True)
 
-    def createMesh(self, name: str, path: str, pose: np.ndarray, scale=1.0, wireFrame=False):
+    def create_mesh(
+        self, name: str, path: str, pose: np.ndarray, scale=1.0, wireFrame=False
+    ):
         if name not in self.__meshes:
-            self.__meshes[name] = Mesh(path, pose, self.__size, scale=scale, wireFrame=wireFrame)
+            self.__meshes[name] = Mesh(
+                path, pose, self.__size, scale=scale, wireFrame=wireFrame
+            )
         else:
-            print("Error : mesh", name, "already exists. Use updateMesh() instead")
+            print("Error : mesh", name, "already exists. Use update_mesh() instead")
 
-    def updateMesh(self, name: str, pose: np.ndarray):
+    def update_mesh(self, name: str, pose: np.ndarray):
         if name not in self.__meshes:
             print("Error : mesh", name, "does not exist")
             return
 
-        self.__meshes[name].setPose(pose)
+        self.__meshes[name].set_pose(pose)
 
     def get_key_pressed(self):
-        return self.__inputs.getKeyPressed()
+        return self.__inputs.get_key_pressed()
 
-    def setCameraPose(self, pose: np.ndarray):
-        self.__camera.setPose(pose)
+    def set_camera_pose(self, pose: np.ndarray):
+        self.__camera.set_pose(pose)
 
     # ==============================================================================
     # Private methods
@@ -415,8 +419,8 @@ class Viewer:
 
         glPushMatrix()
 
-        glutMouseFunc(self.__inputs.mouseClick)
-        glutMotionFunc(self.__inputs.mouseMotion)
+        glutMouseFunc(self.__inputs.mouse_click)
+        glutMotionFunc(self.__inputs.mouse_motion)
         glutKeyboardFunc(self.__inputs.keyboard)
 
         glutMainLoop()
@@ -437,26 +441,26 @@ class Viewer:
         if elapsed != 0:
             self.__fps = len(self.__dts) / elapsed
 
-        self.__handleInputs()
+        self.__handle_inputs()
         self.__camera.update(self.__dt)
 
         self.__display()
 
-    def __handleInputs(self):
-        if self.__inputs.mouseMPressed():
-            self.__camera.move(self.__inputs.getMouseRel())
+    def __handle_inputs(self):
+        if self.__inputs.mouse_m_pressed():
+            self.__camera.move(self.__inputs.get_mouse_rel())
 
-        if self.__inputs.mouseLPressed():
-            if self.__inputs.ctrlPressed():
-                self.__camera.move(self.__inputs.getMouseRel())
+        if self.__inputs.mouse_l_pressed():
+            if self.__inputs.ctrl_pressed():
+                self.__camera.move(self.__inputs.get_mouse_rel())
             else:
-                self.__camera.rotate(self.__inputs.getMouseRel())
+                self.__camera.rotate(self.__inputs.get_mouse_rel())
 
-        if self.__inputs.wheelUp():
-            self.__camera.applyZoom(-15)
+        if self.__inputs.wheel_up():
+            self.__camera.apply_zoom(-15)
 
-        if self.__inputs.wheelDown():
-            self.__camera.applyZoom(15)
+        if self.__inputs.wheel_down():
+            self.__camera.apply_zoom(15)
 
         # if self.__inputs.getKeyPressed() == b"t":
         #     print("couc")
@@ -470,38 +474,38 @@ class Viewer:
         # if self.__inputs.getKeyPressed() == b'c':
         # self.__reset_camera()
 
-        self.__inputs.setMouseRel(np.array([0, 0]))
+        self.__inputs.set_mouse_rel(np.array([0, 0]))
 
     def __display(self):
         # print(self.__fps)
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        self.__displayWorld()
+        self.__display_world()
 
         try:
             for name, (frame, color, thickness) in self.__frames.items():
-                self.__displayFrame(frame, color, thickness)
+                self.__display_frame(frame, color, thickness)
         except RuntimeError:
             pass
 
-        self.__displayLinks()
+        self.__display_links()
 
         try:
             for name in self.__points.keys():
                 if self.__points_visible[name]:
-                    self.__displayPoints(name)
-                    self.__tickPointsList(name)
+                    self.__display_points(name)
+                    self.__tick_points_list(name)
         except RuntimeError:
             pass
 
         for name, mesh in self.__meshes.items():
-            mesh.render(self.__camera.getScale(), showFrame=True)
+            mesh.render(self.__camera.get_scale(), showFrame=True)
 
         glutSwapBuffers()
         glutPostRedisplay()
 
-    def __displayPoints(self, name):
+    def __display_points(self, name):
         color = self.__points[name]["color"]
         size = self.__points[name]["size"]
 
@@ -515,9 +519,9 @@ class Viewer:
         try:
             for point in self.__points[name]["points"]:
                 glVertex3f(
-                    point[0] * self.__camera.getScale(),
-                    point[1] * self.__camera.getScale(),
-                    point[2] * self.__camera.getScale(),
+                    point[0] * self.__camera.get_scale(),
+                    point[1] * self.__camera.get_scale(),
+                    point[2] * self.__camera.get_scale(),
                 )
         except RuntimeError as e:
             print("RuntimeError :", e)
@@ -528,10 +532,10 @@ class Viewer:
         glEnable(GL_LIGHTING)
         glPopMatrix()
 
-    def __tickPointsList(self, name):
+    def __tick_points_list(self, name):
         self.__points[name]["oldness"] += 1
 
-    def __displayPoint(self, _pos, color=(0, 0, 0), size=1):
+    def __display_point(self, _pos, color=(0, 0, 0), size=1):
         pos = _pos.copy()
 
         glPushMatrix()
@@ -542,23 +546,23 @@ class Viewer:
         glBegin(GL_POINTS)
 
         glVertex3f(
-            pos[0] * self.__camera.getScale(),
-            pos[1] * self.__camera.getScale(),
-            pos[2] * self.__camera.getScale(),
+            pos[0] * self.__camera.get_scale(),
+            pos[1] * self.__camera.get_scale(),
+            pos[2] * self.__camera.get_scale(),
         )
         glEnd()
 
         glEnable(GL_LIGHTING)
         glPopMatrix()
 
-    def __displayFrame(self, _pose, color=None, thickness=4):
+    def __display_frame(self, _pose, color=None, thickness=4):
         pose = _pose.copy()
 
         glPushMatrix()
 
-        size = self.__size * self.__camera.getScale()
+        size = self.__size * self.__camera.get_scale()
 
-        trans = pose[:3, 3] * self.__camera.getScale()
+        trans = pose[:3, 3] * self.__camera.get_scale()
         rot_mat = pose[:3, :3]
 
         x_end_vec = rot_mat @ [size, 0, 0] + trans
@@ -595,7 +599,7 @@ class Viewer:
         glEnable(GL_LIGHTING)
         glPopMatrix()
 
-    def __displayLinks(self):
+    def __display_links(self):
         thickness = 2
 
         glPushMatrix()
@@ -604,8 +608,8 @@ class Viewer:
         glBegin(GL_LINES)
 
         for link, color in self.__links.items():
-            frame1_pos = self.__frames[link[0]][0][:3, 3] * self.__camera.getScale()
-            frame2_pos = self.__frames[link[1]][0][:3, 3] * self.__camera.getScale()
+            frame1_pos = self.__frames[link[0]][0][:3, 3] * self.__camera.get_scale()
+            frame2_pos = self.__frames[link[1]][0][:3, 3] * self.__camera.get_scale()
 
             glColor3f(color[0], color[1], color[2])
             glVertex3f(frame1_pos[0], frame1_pos[1], frame1_pos[2])
@@ -616,18 +620,18 @@ class Viewer:
         glEnable(GL_LIGHTING)
         glPopMatrix()
 
-    def __displayWorld(self):
-        self.__displayFrame(utils.make_pose([0, 0, 0], [0, 0, 0]))
+    def __display_world(self):
+        self.__display_frame(utils.make_pose([0, 0, 0], [0, 0, 0]))
 
         glPushMatrix()
 
-        size = self.__size * self.__camera.getScale()
+        size = self.__size * self.__camera.get_scale()
         length = 15
         alpha = 0.04
 
         pose = utils.make_pose([0, 0, 0], [0, 0, 0])
 
-        trans = pose[:3, 3] * self.__camera.getScale()
+        trans = pose[:3, 3] * self.__camera.get_scale()
         rot_mat = pose[:3, :3]
 
         x_end_vec = rot_mat @ [length * size, 0, 0] + trans
@@ -672,7 +676,7 @@ class Viewer:
         glEnable(GL_LIGHTING)
         glPopMatrix()
 
-    def __rotatePoints(
+    def __rotate_points(
         self,
         points: list,
         rotation: list,
@@ -686,7 +690,7 @@ class Viewer:
 
         return pp
 
-    def __translatePoints(self, points: list, translation):
+    def __translate_points(self, points: list, translation):
         pp = []
         for point in points:
             pp.append(point + translation)

@@ -19,7 +19,7 @@ def make_pose(translation: np.ndarray, xyz: np.ndarray, degrees: bool = True):
     return pose
 
 
-def rotateInSelf(_frame, rotation: list, degrees: bool = True):
+def rotate_in_self(_frame, rotation: list, degrees: bool = True):
     """
     Returns a new frame that is the input frame rotated in itself.
     Arguments :
@@ -42,7 +42,7 @@ def rotateInSelf(_frame, rotation: list, degrees: bool = True):
     return frame
 
 
-def rotateAbout(_frame, rotation: list, center: list, degrees: bool = True):
+def rotate_about(_frame, rotation: list, center: list, degrees: bool = True):
     """
     Returns a new frame that is the input frame rotated about a point.
     Arguments :
@@ -65,7 +65,7 @@ def rotateAbout(_frame, rotation: list, center: list, degrees: bool = True):
     return frame
 
 
-def translateInSelf(_frame, translation: list):
+def translate_in_self(_frame, translation: list):
     """
     Returns a new frame that is the input frame translated along its own axes
     Arguments :
@@ -86,7 +86,7 @@ def translateInSelf(_frame, translation: list):
     return frame
 
 
-def translateAbsolute(_frame, translation):
+def translate_absolute(_frame, translation):
     """
     Returns a new frame that is the input frame translated along the world axes
     Arguments :
@@ -100,8 +100,7 @@ def translateAbsolute(_frame, translation):
     return translate @ frame
 
 
-# TODO check that
-def swapAxes(_frame: np.ndarray, ax1_str: str, ax2_str: str):
+def swap_axes(_frame: np.ndarray, ax1_str: str, ax2_str: str):
     """
     Returns a new frame that is the input frame with two axes swapped
     Arguments :
