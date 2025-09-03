@@ -9,7 +9,7 @@ from OpenGL.GL import (
     GL_MODELVIEW,
     GL_MODELVIEW_MATRIX,
 )
-from frames_viewer import utils
+from FramesViewer import utils
 
 
 class Camera:

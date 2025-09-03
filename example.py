@@ -1,6 +1,6 @@
-from frames_viewer import Viewer
+from FramesViewer import Viewer
 import numpy as np
-import frames_viewer.utils as utils
+import FramesViewer.utils as utils
 
 import time
 

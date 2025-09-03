@@ -59,10 +59,10 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 import time
 import threading
-import frames_viewer.utils as utils
-from frames_viewer.camera import Camera
-from frames_viewer.inputs import Inputs
-from frames_viewer.mesh import Mesh
+import FramesViewer.utils as utils
+from FramesViewer.camera import Camera
+from FramesViewer.inputs import Inputs
+from FramesViewer.mesh import Mesh
 
 # TODO display the frames names in the viewer
 # TODO display fps in viewer

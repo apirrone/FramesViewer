@@ -6,7 +6,7 @@ https://user-images.githubusercontent.com/6552564/194662755-2a6c181c-e662-4104-a
 
 ## Installation
 ```console
-pip install frames_viewer
+pip install FramesViewer
 ```
 
 or
@@ -17,8 +17,8 @@ pip3 install -e .
 
 ## Example : 
 ```python
-from frames_viewer import Viewer
-import frames_viewer.utils as utils
+from FramesViewer import Viewer
+import FramesViewer.utils as utils
 import time
 
 fv = Viewer()
